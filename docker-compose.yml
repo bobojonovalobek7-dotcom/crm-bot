@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  educenter:
+    build: .
+    container_name: educenter_app
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./educenter.db:/app/educenter.db

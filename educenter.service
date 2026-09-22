@@ -1,0 +1,16 @@
+[Unit]
+Description=EduCenter Telegram Bot & FastAPI CRM
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/educenter_bot
+ExecStart=/var/www/educenter_bot/.venv/bin/python main.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/var/www/educenter_bot/.env
+
+[Install]
+WantedBy=multi-user.target

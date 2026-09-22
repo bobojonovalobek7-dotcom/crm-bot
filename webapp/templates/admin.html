@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduCenter CRM — Admin Panel</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- Navbar -->
+    <header class="glass-nav py-4 px-6 mb-6">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-200">
+                    🎓
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 leading-tight">EduCenter CRM</h1>
+                    <p class="text-xs text-slate-500">O'quv markazini boshqarish markazi</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="badge badge-primary">🛡 Super Admin</span>
+                <a href="/admin/backup" class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 border-indigo-200 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 shadow-sm" title="Baza faylini to'liq yuklab olish">
+                    💾 <span>Baza Zaxirasi (Backup)</span>
+                </a>
+                <a href="/" class="btn-secondary text-xs py-1.5 px-3">Bosh sahifa</a>
+                <a href="https://t.me/zahro_crm_bot" target="_blank" class="btn-primary text-xs py-1.5 px-3">
+                    🤖 Telegram Bot
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 pb-12 space-y-6">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="modern-card p-5 bg-gradient-to-br from-indigo-50/50 to-white">
+                <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">👨‍🎓 O'quvchilar</p>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ summary.students }}</h3>
+                <p class="text-xs text-slate-400 mt-1">Faol talabalar</p>
+            </div>
+
+            <div class="modern-card p-5 bg-gradient-to-br from-cyan-50/50 to-white">
+                <p class="text-xs font-semibold text-cyan-600 uppercase tracking-wider">👩‍🏫 Ustozlar</p>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ summary.teachers }}</h3>
+                <p class="text-xs text-slate-400 mt-1">O'qituvchilar tarkibi</p>
+            </div>
+
+            <div class="modern-card p-5 bg-gradient-to-br from-emerald-50/50 to-white">
+                <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">📚 Guruhlar</p>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ summary.groups }}</h3>
+                <p class="text-xs text-slate-400 mt-1">Ochilgan guruhlar</p>
+            </div>
+
+            <div class="modern-card p-5 bg-gradient-to-br from-amber-50/50 to-white">
+                <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider">💰 Jami Tushum</p>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ "%.0f"|format(summary.total_revenue) }}</h3>
+                <p class="text-xs text-slate-400 mt-1">so'm (barcha oylar)</p>
+            </div>
+
+            <div class="modern-card p-5 bg-gradient-to-br from-purple-50/50 to-white">
+                <p class="text-xs font-semibold text-purple-600 uppercase tracking-wider">📈 Davomat</p>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ "%.1f"|format(summary.attendance_rate) }}%</h3>
+                <p class="text-xs text-slate-400 mt-1">O'rtacha qatnashish</p>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="modern-card p-2 flex flex-wrap gap-2">
+            <button class="tab-btn active" onclick="openTab('overview')">📊 Umumiy ko'rinish</button>
+            <button class="tab-btn" onclick="openTab('groups')">📚 Guruhlar & Biriktirish</button>
+            <button class="tab-btn" onclick="openTab('family')">👨‍👩‍👧 Oila (Ota-ona & Farzand)</button>
+            <button class="tab-btn" onclick="openTab('payments')">💸 To'lov Qabul Qilish</button>
+            <button class="tab-btn" onclick="openTab('attendance')">✅ Davomat Kiritish</button>
+            <button class="tab-btn" onclick="openTab('feedbacks')">💬 Murojaatlar</button>
+            <button class="tab-btn" onclick="openTab('users')">👥 Foydalanuvchilar</button>
+            <button class="tab-btn" onclick="openTab('superadmin')">👑 Super Admin</button>
+            <button class="tab-btn" onclick="openTab('export')">📤 Eksport & Xabarnoma</button>
+        </div>
+
+        <!-- TAB 1: OVERVIEW -->
+        <div id="tab-overview" class="tab-content space-y-6">
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Leaderboard -->
+                <div class="modern-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            🏆 <span>Yetakchi O'quvchilar</span>
+                        </h3>
+                        <span class="text-xs text-slate-400">Eng ko'p to'lov qilganlar</span>
+                    </div>
+                    {% if leaderboard %}
+                    <ul class="space-y-2.5">
+                        {% for s in leaderboard %}
+                        <li class="flex justify-between items-center p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/50 transition">
+                            <div class="flex items-center gap-3">
+                                <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center">{{ loop.index }}</span>
+                                <span class="font-medium text-slate-800">{{ s.full_name }}</span>
+                            </div>
+                            <span class="font-semibold text-emerald-600">{{ "%.0f"|format(s.paid|float) }} so'm</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-sm text-slate-400 py-4 text-center">Hozircha ma'lumotlar mavjud emas.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Debtors -->
+                <div class="modern-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            ⚠️ <span>To'lovi kutilayotganlar</span>
+                        </h3>
+                        <span class="text-xs text-slate-400">Qarzdorlar tahlili</span>
+                    </div>
+                    {% if debtors %}
+                    <ul class="space-y-2.5">
+                        {% for d in debtors %}
+                        <li class="flex justify-between items-center p-3 rounded-xl bg-slate-50 hover:bg-rose-50/50 transition">
+                            <span class="font-medium text-slate-800">{{ d.full_name }}</span>
+                            <span class="badge badge-danger">To'langan: {{ "%.0f"|format(d.paid|float) }} so'm</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-sm text-slate-400 py-4 text-center">Qarzdorlar ro'yxati bo'sh.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Payments Table -->
+            <div class="modern-card p-6">
+                <h3 class="font-bold text-slate-800 text-lg mb-4">💳 Oxirgi to'lovlar</h3>
+                <div class="overflow-x-auto">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>O'quvchi</th>
+                                <th>Guruh</th>
+                                <th>Summa</th>
+                                <th>Usuli</th>
+                                <th>Oy</th>
+                                <th>Sana</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in recent_payments %}
+                            <tr>
+                                <td class="font-medium">{{ p.student_name }}</td>
+                                <td>{{ p.group_name }}</td>
+                                <td class="font-bold text-emerald-600">{{ "%.0f"|format(p.amount) }} so'm</td>
+                                <td><span class="badge badge-primary">{{ p.payment_type.capitalize() }}</span></td>
+                                <td>{{ p.month_for }}</td>
+                                <td class="text-slate-400 text-xs">{{ p.created_at[:16] }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-slate-400 py-4">To'lovlar tarixi bo'sh.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: GROUPS & ENROLLMENTS -->
+        <div id="tab-groups" class="tab-content hidden space-y-6">
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Create Group Form -->
+                <div class="modern-card p-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4">📚 Yangi guruh ochish</h3>
+                    <form id="createGroupForm" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Guruh nomi</label>
+                            <input type="text" name="name" placeholder="Masalan: Frontend-01" required class="modern-input">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Fan / Yo'nalish</label>
+                            <input type="text" name="subject" placeholder="Masalan: Web Dasturlash" required class="modern-input">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Oylik to'lov (so'm)</label>
+                                <input type="number" name="monthly_fee" placeholder="350000" required class="modern-input">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">O'qituvchi</label>
+                                <select name="teacher_id" required class="modern-select">
+                                    {% for t in teachers %}
+                                    <option value="{{ t.id }}">{{ t.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Dars kunlari & vaqti</label>
+                                <input type="text" name="schedule" placeholder="Dush-Chor-Jum 16:00" class="modern-input">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Xona raqami</label>
+                                <input type="text" name="room" placeholder="3-xona" class="modern-input">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary w-full mt-2">💾 Guruhni Saqlash</button>
+                    </form>
+                </div>
+
+                <!-- Enroll Student Form -->
+                <div class="modern-card p-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4">👥 O'quvchini guruhga biriktirish</h3>
+                    <form id="enrollForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">O'quvchini tanlang</label>
+                            <select name="student_id" required class="modern-select">
+                                {% for s in students %}
+                                <option value="{{ s.id }}">{{ s.full_name }} ({{ s.phone or 'Tel yo`q' }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Guruhni tanlang</label>
+                            <select name="group_id" required class="modern-select">
+                                {% for g in groups %}
+                                <option value="{{ g.id }}">{{ g.name }} — {{ g.subject }} (Ustoz: {{ g.teacher_name }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <p class="text-xs text-slate-400">O'quvchi biriktirilishi bilan uning dars jadvalida ushbu guruh paydo bo'ladi.</p>
+                        <button type="submit" class="btn-primary w-full">🔗 Guruhga Biriktirish</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Current Groups Roster -->
+            <div class="modern-card p-6">
+                <h3 class="font-bold text-slate-800 text-lg mb-4">📋 Faol guruhlar ro'yxati</h3>
+                <div class="overflow-x-auto">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Guruh nomi</th>
+                                <th>Fan</th>
+                                <th>Ustoz</th>
+                                <th>Jadval</th>
+                                <th>Xona</th>
+                                <th>O'quvchilar</th>
+                                <th>Oylik narx</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for g in groups %}
+                            <tr>
+                                <td class="font-bold text-indigo-700">{{ g.name }}</td>
+                                <td>{{ g.subject }}</td>
+                                <td>{{ g.teacher_name or "Tayinlanmagan" }}</td>
+                                <td>{{ g.schedule or "Kiritilmagan" }}</td>
+                                <td>{{ g.room or "—" }}</td>
+                                <td><span class="badge badge-primary">{{ g.student_count }} ta</span></td>
+                                <td class="font-semibold">{{ "%.0f"|format(g.monthly_fee) }} so'm</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-slate-400 py-4">Guruhlar hali ochilmagan.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: PAYMENTS -->
+        <div id="tab-payments" class="tab-content hidden space-y-6">
+            <div class="max-w-2xl mx-auto modern-card p-6">
+                <h3 class="font-bold text-slate-800 text-xl text-center mb-2">💸 To'lov Qabul Qilish</h3>
+                <p class="text-sm text-slate-500 text-center mb-6">To'lov saqlangach, o'quvchining Telegram botiga avtomatik kvitansiya jo'natiladi.</p>
+
+                <form id="payForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">O'quvchi</label>
+                        <select name="student_id" required class="modern-select">
+                            {% for s in students %}
+                            <option value="{{ s.id }}">{{ s.full_name }} ({{ s.phone }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Guruh</label>
+                        <select name="group_id" required class="modern-select">
+                            {% for g in groups %}
+                            <option value="{{ g.id }}">{{ g.name }} ({{ g.subject }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">To'lov summasi (so'm)</label>
+                            <input type="number" name="amount" required placeholder="350000" class="modern-input">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">To'lov usuli</label>
+                            <select name="payment_type" class="modern-select">
+                                <option value="naqd">Naqd pul</option>
+                                <option value="karta">Karta (Perevod/Terminal)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Qaysi oy uchun</label>
+                            <input type="text" name="month_for" placeholder="2026-sentyabr" required class="modern-input">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Izoh / Kvitansiya raqami</label>
+                            <input type="text" name="note" placeholder="Ixtiyoriy izoh" class="modern-input">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary w-full py-3 text-base mt-4">
+                        💸 To'lovni Qabul Qilish va Telegramga Chek Jo'natish
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB 4: ATTENDANCE -->
+        <div id="tab-attendance" class="tab-content hidden space-y-6">
+            <div class="max-w-2xl mx-auto modern-card p-6">
+                <h3 class="font-bold text-slate-800 text-xl text-center mb-2">✅ Davomat Kiritish</h3>
+                <p class="text-sm text-slate-500 text-center mb-6">O'quvchining darsdagi ishtirokini qayd etish</p>
+
+                <form id="attendanceForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Guruhni tanlang</label>
+                        <select name="group_id" id="att_group_select" required class="modern-select">
+                            {% for g in groups %}
+                            <option value="{{ g.id }}">{{ g.name }} ({{ g.subject }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">O'quvchini tanlang</label>
+                        <select name="student_id" required class="modern-select">
+                            {% for s in students %}
+                            <option value="{{ s.id }}">{{ s.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sana</label>
+                            <input type="date" name="date" required id="att_date" class="modern-input">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Holat</label>
+                            <select name="status" class="modern-select">
+                                <option value="keldi">🟢 Keldi</option>
+                                <option value="kelmadi">🔴 Kelmadi</option>
+                                <option value="sababli">🟡 Sababli</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary w-full py-2.5 mt-2">💾 Davomatni Saqlash</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB 5: USERS -->
+        <div id="tab-users" class="tab-content hidden space-y-6">
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Create Admin -->
+                <div class="modern-card p-6">
+                    <h3 class="font-bold text-slate-800 text-base mb-3">🛡 Yangi Admin</h3>
+                    <form id="createAdminForm" class="space-y-3">
+                        <input type="text" name="full_name" placeholder="F.I.Sh" required class="modern-input">
+                        <input type="text" name="phone" placeholder="Telefon raqam" class="modern-input">
+                        <input type="number" name="telegram_id" placeholder="Telegram ID" class="modern-input">
+                        <button type="submit" class="btn-primary w-full">✅ Admin Qo'shish</button>
+                    </form>
+                </div>
+
+                <!-- Create Teacher -->
+                <div class="modern-card p-6">
+                    <h3 class="font-bold text-slate-800 text-base mb-3">👨‍🏫 Yangi O'qituvchi</h3>
+                    <form id="createTeacherForm" class="space-y-3">
+                        <input type="text" name="full_name" placeholder="F.I.Sh" required class="modern-input">
+                        <input type="text" name="phone" placeholder="Telefon raqam" class="modern-input">
+                        <input type="number" name="telegram_id" placeholder="Telegram ID" class="modern-input">
+                        <button type="submit" class="btn-primary w-full">✅ O'qituvchi Qo'shish</button>
+                    </form>
+                </div>
+
+                <!-- Create Student / Parent -->
+                <div class="modern-card p-6">
+                    <h3 class="font-bold text-slate-800 text-base mb-3">🧑‍🎓 Yangi O'quvchi / Ota-ona</h3>
+                    <form id="createUserForm" class="space-y-3">
+                        <input type="text" name="full_name" placeholder="F.I.Sh" required class="modern-input">
+                        <input type="text" name="phone" placeholder="Telefon raqam" class="modern-input">
+                        <input type="number" name="telegram_id" placeholder="Telegram ID (ixtiyoriy)" class="modern-input">
+                        <select name="role" class="modern-select">
+                            <option value="student">Student (O'quvchi)</option>
+                            <option value="parent">Parent (Ota-ona)</option>
+                        </select>
+                        <button type="submit" class="btn-primary w-full">✅ Saqlash</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Users List Table -->
+            <div class="modern-card p-6">
+                <h3 class="font-bold text-slate-800 text-lg mb-4">👥 Tizim foydalanuvchilari</h3>
+                <div class="overflow-x-auto">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>F.I.Sh</th>
+                                <th>Roli</th>
+                                <th>Telefon</th>
+                                <th>Telegram ID</th>
+                                <th>Amallar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in admins %}
+                            <tr>
+                                <td class="font-semibold">{{ u.full_name }}</td>
+                                <td><span class="badge badge-danger">{{ u.role }}</span></td>
+                                <td>{{ u.phone or "—" }}</td>
+                                <td>{{ u.telegram_id or "—" }}</td>
+                                <td>—</td>
+                            </tr>
+                            {% endfor %}
+                            {% for u in teachers %}
+                            <tr>
+                                <td class="font-semibold">{{ u.full_name }}</td>
+                                <td><span class="badge badge-warning">Ustoz</span></td>
+                                <td>{{ u.phone or "—" }}</td>
+                                <td>{{ u.telegram_id or "—" }}</td>
+                                <td><a href="/teacher/{{ u.id }}" class="text-indigo-600 hover:underline text-xs">Veb-panel</a></td>
+                            </tr>
+                            {% endfor %}
+                            {% for u in students %}
+                            <tr>
+                                <td class="font-semibold">{{ u.full_name }}</td>
+                                <td><span class="badge badge-primary">O'quvchi</span></td>
+                                <td>{{ u.phone or "—" }}</td>
+                                <td>{{ u.telegram_id or "—" }}</td>
+                                <td><a href="/parent/{{ u.id }}" class="text-indigo-600 hover:underline text-xs">Kabinet</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: EXPORT & BROADCAST -->
+        <div id="tab-export" class="tab-content hidden space-y-6">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="modern-card p-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4">📤 Excel Hisobotlar</h3>
+                    <p class="text-sm text-slate-500 mb-4">Barcha jadvallarni Excel fayl shaklida kompyuteringizga yuklab oling:</p>
+                    <div class="space-y-3">
+                        <a href="/admin/export/students" class="btn-secondary w-full justify-between flex">
+                            <span>👨‍🎓 O'quvchilar ro'yxati</span>
+                            <span>Yuklab olish (.xlsx) 📥</span>
+                        </a>
+                        <a href="/admin/export/payments" class="btn-secondary w-full justify-between flex">
+                            <span>💳 Barcha to'lovlar tarixi</span>
+                            <span>Yuklab olish (.xlsx) 📥</span>
+                        </a>
+                        <a href="/admin/export/attendance" class="btn-secondary w-full justify-between flex">
+                            <span>✅ Davomat jurnali</span>
+                            <span>Yuklab olish (.xlsx) 📥</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="modern-card p-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4">📣 Ota-onalarga Bildirishnoma</h3>
+                    <p class="text-sm text-slate-500 mb-4">Ro'yxatdan o'tgan barcha ota-onalarga darslar va markaz faoliyati haqida eslatma jo'natish:</p>
+                    <form id="dailyNotifyForm" class="space-y-4">
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                            ℹ️ Ushbu xabar barcha ota-onalarga Telegram orqali bitta tugma bilan yetkaziladi.
+                        </div>
+                        <button type="submit" class="btn-primary w-full py-3 bg-rose-600 hover:bg-rose-700">
+                            📣 Barcha Ota-onalarga Xabar Yuborish
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: FAMILY (OTA-ONA VA FARZAND BOG'LASH) -->
+        <div id="tab-family" class="tab-content hidden space-y-6">
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Bog'lash formasi -->
+                <div class="modern-card p-6 md:col-span-1">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4">🔗 Ota-ona va Farzandni Bog'lash</h3>
+                    <p class="text-xs text-slate-500 mb-4">Farzand darsga kelmasa yoki to'lov qabul qilinsa, biriktirilgan ota-onaga avtomatik Telegram xabar boradi.</p>
+                    
+                    <form id="linkParentForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Ota yoki Ona (Foydalanuvchi):</label>
+                            <select name="parent_id" class="input-field" required>
+                                <option value="">Ota-onani tanlang...</option>
+                                {% for p in parents %}
+                                <option value="{{ p.id }}">{{ p.full_name }} ({{ p.phone or 'Tel yo\'q' }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">O'quvchi (Farzand):</label>
+                            <select name="student_id" class="input-field" required>
+                                <option value="">O'quvchini tanlang...</option>
+                                {% for s in students %}
+                                <option value="{{ s.id }}">{{ s.full_name }} ({{ s.phone or 'Tel yo\'q' }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Qarindoshlik turi:</label>
+                            <select name="relation_type" class="input-field">
+                                <option value="ota">Otasi</option>
+                                <option value="ona">Onasi</option>
+                                <option value="vasiy">Vasiy / Homiy</option>
+                                <option value="boshqa">Boshqa</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-primary w-full py-2.5">
+                            🔗 Bog'lash
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Bog'langanlar ro'yxati -->
+                <div class="modern-card p-6 md:col-span-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg">👨‍👩‍👧 Bog'langan Oila A'zolari</h3>
+                        <span class="badge badge-primary">{{ parent_links|length }} ta bog'lanish</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-400 text-xs uppercase font-semibold">
+                                    <th class="py-3 px-2">Farzand (O'quvchi)</th>
+                                    <th class="py-3 px-2">Ota / Ona</th>
+                                    <th class="py-3 px-2">Telefon</th>
+                                    <th class="py-3 px-2">Turi</th>
+                                    <th class="py-3 px-2">Telegram</th>
+                                    <th class="py-3 px-2">Amal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {% for l in parent_links %}
+                                <tr class="hover:bg-slate-50/80 transition">
+                                    <td class="py-3 px-2 font-semibold text-slate-800">{{ l.student_name }}</td>
+                                    <td class="py-3 px-2 text-slate-700">{{ l.parent_name }}</td>
+                                    <td class="py-3 px-2 text-slate-500 font-mono text-xs">{{ l.parent_phone or '-' }}</td>
+                                    <td class="py-3 px-2">
+                                        <span class="badge badge-secondary">{{ l.relation_type|capitalize }}</span>
+                                    </td>
+                                    <td class="py-3 px-2">
+                                        {% if l.parent_telegram_id %}
+                                        <span class="text-xs text-emerald-600 font-medium">✅ Bog'langan</span>
+                                        {% else %}
+                                        <span class="text-xs text-slate-400">Yo'q</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3 px-2">
+                                        <button onclick="unlinkParent({{ l.parent_id }}, {{ l.student_id }})" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
+                                            Bekor qilish
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="py-8 text-center text-slate-400">Hozircha birorta ota-ona o'quvchiga bog'lanmagan.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: FEEDBACKS (MUROJAAT VA TAKLIFLAR) -->
+        <div id="tab-feedbacks" class="tab-content hidden space-y-6">
+            <div class="modern-card p-6">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg">💬 Ota-onalar va O'quvchilar Murojaatlari</h3>
+                        <p class="text-xs text-slate-500">Taklif, savol va shikoyatlarni ko'rish hamda javob berish markazi</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <span class="badge badge-primary">Jami: {{ feedbacks|length }} ta</span>
+                        <span class="badge badge-warning">
+                            Yangi: {{ feedbacks|selectattr('status', 'equalto', 'yangi')|list|length }} ta
+                        </span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-400 text-xs uppercase font-semibold">
+                                <th class="py-3 px-2">ID</th>
+                                <th class="py-3 px-2">Kimdan</th>
+                                <th class="py-3 px-2">O'quvchi</th>
+                                <th class="py-3 px-2">Toifa</th>
+                                <th class="py-3 px-2">Murojaat matni</th>
+                                <th class="py-3 px-2">Sana</th>
+                                <th class="py-3 px-2">Holat</th>
+                                <th class="py-3 px-2">Amal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for f in feedbacks %}
+                            <tr class="hover:bg-slate-50/80 transition">
+                                <td class="py-3 px-2 font-mono text-xs text-slate-400">#{{ f.id }}</td>
+                                <td class="py-3 px-2">
+                                    <div class="font-medium text-slate-800">{{ f.user_name }}</div>
+                                    <div class="text-xs text-slate-400">{{ f.user_role }} | {{ f.user_phone or 'Tel yo\'q' }}</div>
+                                </td>
+                                <td class="py-3 px-2 text-slate-600">
+                                    {{ f.student_name or 'Umumiy' }}
+                                </td>
+                                <td class="py-3 px-2">
+                                    {% if f.feedback_type == 'taklif' %}
+                                    <span class="badge badge-primary">💡 Taklif</span>
+                                    {% elif f.feedback_type == 'shikoyat' %}
+                                    <span class="badge badge-danger">⚠️ Shikoyat</span>
+                                    {% elif f.feedback_type == 'savol' %}
+                                    <span class="badge badge-warning">❓ Savol</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">{{ f.feedback_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-2 max-w-xs">
+                                    <div class="text-slate-800 font-medium truncate" title="{{ f.message }}">{{ f.message }}</div>
+                                    {% if f.admin_reply %}
+                                    <div class="text-xs text-indigo-600 mt-1">
+                                        <b>Javob:</b> {{ f.admin_reply }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-2 text-xs text-slate-400 font-mono">
+                                    {{ f.created_at[:10] if f.created_at else '' }}
+                                </td>
+                                <td class="py-3 px-2">
+                                    {% if f.status == 'yangi' %}
+                                    <span class="badge badge-warning">🟢 Yangi</span>
+                                    {% elif f.status == 'javob_berildi' %}
+                                    <span class="badge badge-success">✅ Javob berilgan</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">{{ f.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-2">
+                                    <button onclick="openFeedbackReplyModal({{ f.id }}, '{{ f.user_name }}', '{{ f.message|replace("'", "\\'")|replace('\n', ' ') }}')" class="btn-secondary text-xs py-1 px-2.5">
+                                        ✍️ Javob berish
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="py-8 text-center text-slate-400">Hozircha birorta murojaat kelib tushmagan.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+        <!-- TAB: SUPER ADMIN -->
+        <div id="tab-superadmin" class="tab-content hidden space-y-6">
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Database Backup & Security Card -->
+                <div class="modern-card p-6 bg-gradient-to-br from-indigo-50/40 to-white">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl font-bold shadow-md">
+                            💾
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg">Ma'lumotlar Bazasi Zaxirasi</h3>
+                            <p class="text-xs text-slate-500">Tizimning to'liq nusxasini xavfsiz yuklab olish</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed mb-6">
+                        Ushbu tugma orqali o'quv markazingizning barcha o'quvchilari, to'lovlari, davomat jurnali va sozlamalarini o'z ichiga olgan <code>educenter.db</code> faylini bir zumda kompyuteringizga yuklab olasiz.
+                    </p>
+                    <a href="/admin/backup" class="btn-primary text-xs py-2.5 px-4 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700">
+                        <span>📥 Baza Zaxira Faylini Yuklab Olish (.db)</span>
+                    </a>
+                </div>
+
+                <!-- Admin Accounts Control Card -->
+                <div class="modern-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            <span>🛡 Administratorlar Nazorati</span>
+                        </h3>
+                        <span class="badge badge-primary">{{ admins|length }} nafar admin</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-100 text-slate-400 text-xs uppercase">
+                                    <th class="pb-2 font-medium">Admin</th>
+                                    <th class="pb-2 font-medium">Telefon</th>
+                                    <th class="pb-2 font-medium">Amal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {% for adm in admins %}
+                                <tr>
+                                    <td class="py-2.5 text-xs font-semibold text-slate-800">
+                                        {{ adm.full_name }}
+                                        {% if adm.role == 'super_admin' %}
+                                        <span class="badge badge-primary text-[10px] ml-1">Super</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-2.5 text-xs text-slate-500 font-mono">{{ adm.phone or '-' }}</td>
+                                    <td class="py-2.5">
+                                        {% if adm.role != 'super_admin' %}
+                                        <button onclick="deleteAdmin({{ adm.id }})" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
+                                            O'chirish
+                                        </button>
+                                        {% else %}
+                                        <span class="text-xs text-slate-400">Asosiy ta'sischi</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Feedback Reply Modal -->
+    <div id="replyModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-900 text-lg">Murojaatga Javob Berish</h3>
+                <button type="button" onclick="closeFeedbackModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+            <div>
+                <p class="text-xs text-slate-500 uppercase font-semibold">Murojaat egasi:</p>
+                <p id="modalUserName" class="font-medium text-slate-800"></p>
+                <div id="modalOriginalMsg" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 italic mt-2"></div>
+            </div>
+            <form id="replyFeedbackForm" class="space-y-4">
+                <input type="hidden" name="feedback_id" id="modalFeedbackId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Javob matni (Telegramga yuboriladi):</label>
+                    <textarea name="reply_text" rows="4" class="input-field" placeholder="Hurmatli ota-ona..." required></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeFeedbackModal()" class="btn-secondary">Bekor qilish</button>
+                    <button type="submit" class="btn-primary">Yuborish 🚀</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast">
+        <span id="toastIcon">✅</span>
+        <span id="toastMsg">Amal muvaffaqiyatli bajarildi!</span>
+    </div>
+
+    <script>
+        // Set today's date in attendance
+        if (document.getElementById('att_date')) {
+            document.getElementById('att_date').value = new Date().toISOString().split('T')[0];
+        }
+
+        // Tab Switching
+        function openTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            const target = document.getElementById('tab-' + tabName);
+            if (target) target.classList.remove('hidden');
+            if (event && event.target) event.target.classList.add('active');
+        }
+
+        // Modal helpers
+        function openFeedbackReplyModal(id, userName, msg) {
+            document.getElementById('modalFeedbackId').value = id;
+            document.getElementById('modalUserName').innerText = userName;
+            document.getElementById('modalOriginalMsg').innerText = msg;
+            document.getElementById('replyModal').classList.remove('hidden');
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('replyModal').classList.add('hidden');
+        }
+
+        // Unlink parent
+        async function unlinkParent(parentId, studentId) {
+            if (!confirm("Haqiqatan ham bu bog'lanishni bekor qilmoqchimisiz?")) return;
+            const formData = new FormData();
+            formData.append('parent_id', parentId);
+            formData.append('student_id', studentId);
+            try {
+                const res = await fetch('/admin/unlink-parent', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    showToast(data.message || "Bog'lanish bekor qilindi!");
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(data.message || "Xatolik!", true);
+                }
+            } catch (e) {
+                showToast("Server bilan bog'lanishda xatolik!", true);
+            }
+        }
+
+        // Toast Helper
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            document.getElementById('toastIcon').innerText = isError ? '❌' : '✅';
+            toast.style.background = isError ? '#991b1b' : '#065f46';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // Generic Form Submit Helper with AJAX
+        async function handleFormSubmit(formId, endpoint, successMsg) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                try {
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.status === 'success') {
+                        showToast(successMsg || data.message || "Muvaffaqiyatli saqlandi!");
+                        form.reset();
+                        setTimeout(() => window.location.reload(), 1200);
+                    } else {
+                        showToast(data.detail || data.message || "Xatolik yuz berdi!", true);
+                    }
+                } catch (err) {
+                    showToast("Server bilan bog'lanishda xatolik!", true);
+                }
+            });
+        }
+
+        handleFormSubmit('payForm', '/admin/pay', "To'lov qabul qilindi va chek jo'natildi!");
+        handleFormSubmit('createGroupForm', '/admin/create-group', "Guruh muvaffaqiyatli yaratildi!");
+        handleFormSubmit('enrollForm', '/admin/enroll', "O'quvchi guruhga biriktirildi!");
+        handleFormSubmit('attendanceForm', '/admin/attendance', "Davomat saqlandi!");
+        handleFormSubmit('createAdminForm', '/admin/create-admin', "Admin yaratildi!");
+        handleFormSubmit('createTeacherForm', '/admin/create-teacher', "O'qituvchi qabul qilindi!");
+        handleFormSubmit('createUserForm', '/admin/create-user', "Foydalanuvchi yaratildi!");
+        handleFormSubmit('dailyNotifyForm', '/admin/send-daily', "Bildirishnomalar jo'natildi!");
+        handleFormSubmit('linkParentForm', '/admin/link-parent', "Ota-ona va o'quvchi muvaffaqiyatli bog'landi!");
+        handleFormSubmit('replyFeedbackForm', '/admin/feedback/reply', "Javob foydalanuvchiga muvaffaqiyatli yuborildi!");
+
+        // Delete Admin
+        async function deleteAdmin(adminId) {
+            if (!confirm("Haqiqatan ham bu adminni tizimdan o'chirmoqchimisiz?")) return;
+            const formData = new FormData();
+            formData.append('admin_id', adminId);
+            try {
+                const res = await fetch('/admin/delete-admin', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    showToast(data.message || "Admin o'chirildi!");
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(data.message || "Xatolik!", true);
+                }
+            } catch (e) {
+                showToast("Server bilan bog'lanishda xatolik!", true);
+            }
+        }
+
+        // Telegram Web App auto-expand
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+    </script>
+</body>
+</html>

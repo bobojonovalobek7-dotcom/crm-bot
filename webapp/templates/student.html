@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O'quvchi Portali — EduCenter</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-100 min-h-screen text-slate-800">
+    <!-- Navigation -->
+    <header class="glass-nav py-4 px-6 mb-6">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-blue-200">
+                    👨‍🎓
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 leading-tight">{{ student.full_name if student else "O'quvchi" }}</h1>
+                    <p class="text-xs text-slate-500">{{ student.phone or "O'quvchi shaxsiy portali" }}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="badge badge-primary">O'quvchi</span>
+                <a href="/" class="btn-secondary text-xs py-1.5 px-3">Bosh sahifa</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 pb-12 space-y-6">
+        <!-- Quick Stats Overview -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="stat-card">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold text-slate-500">Guruhlarim</span>
+                    <span class="text-lg">📚</span>
+                </div>
+                <div class="text-2xl font-bold text-slate-900">{{ groups|length }}</div>
+                <div class="text-xs text-indigo-600 mt-1">A'zo bo'lgan fanlar</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold text-slate-500">Davomat ko'rsatkichi</span>
+                    <span class="text-lg">🟢</span>
+                </div>
+                <div class="text-2xl font-bold text-emerald-600">{{ "%.0f"|format(attendance_rate) }}%</div>
+                <div class="text-xs text-emerald-500 mt-1">Qatnashish darajasi</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold text-slate-500">To'lovlar soni</span>
+                    <span class="text-lg">💳</span>
+                </div>
+                <div class="text-2xl font-bold text-slate-900">{{ records|length }}</div>
+                <div class="text-xs text-slate-500 mt-1">Kvitansiyalar</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold text-slate-500">Jami to'langan</span>
+                    <span class="text-lg">💵</span>
+                </div>
+                <div class="text-2xl font-bold text-slate-900">{{ "%.0f"|format(total_paid) }}</div>
+                <div class="text-xs text-slate-400 mt-1">so'm</div>
+            </div>
+        </div>
+
+        <!-- Groups & Schedule Card -->
+        <div class="modern-card p-6">
+            <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                📚 <span>Mening Darslarim & Dars Jadvali</span>
+            </h3>
+            {% if groups and groups|length > 0 %}
+            <div class="grid md:grid-cols-2 gap-4">
+                {% for g in groups %}
+                <div class="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-indigo-300 transition shadow-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-base">{{ g.name }}</h4>
+                            <p class="text-xs font-medium text-indigo-600">{{ g.subject }}</p>
+                        </div>
+                        <span class="badge badge-success">{{ "%.0f"|format(g.monthly_fee) }} so'm/oy</span>
+                    </div>
+                    <div class="space-y-1.5 text-xs text-slate-600 mt-3 pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-400">⏰ Dars vaqti:</span>
+                            <span class="font-medium text-slate-800">{{ g.schedule or "Belgilanmagan" }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-400">🚪 Xona:</span>
+                            <span class="font-medium text-slate-800">{{ g.room ~ '-xona' if g.room else "Asosiy zal" }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-400">👨‍🏫 Ustoz:</span>
+                            <span class="font-medium text-slate-800">{{ g.teacher_name or "Tayinlanmagan" }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <p>Hozircha birorta ham guruhga a'zo emassiz.</p>
+                <p class="text-xs mt-1">Administrator sizni guruhga qo'shishi bilan dars jadvali shu yerda paydo bo'ladi.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Attendance History -->
+            <div class="modern-card p-6">
+                <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                    ✅ <span>Mening Davomatim (Oxirgi darslar)</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-100 text-slate-400 text-xs uppercase">
+                                <th class="pb-2 font-medium">Sana</th>
+                                <th class="pb-2 font-medium">Guruh</th>
+                                <th class="pb-2 font-medium">Holat</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for a in attendance %}
+                            <tr>
+                                <td class="py-2.5 text-slate-600 text-xs">{{ a.date }}</td>
+                                <td class="py-2.5 font-medium text-slate-800 text-xs">{{ a.group_name }}</td>
+                                <td class="py-2.5">
+                                    {% if a.status == 'keldi' %}
+                                    <span class="badge badge-success text-[11px]">🟢 Keldi</span>
+                                    {% elif a.status == 'kelmadi' %}
+                                    <span class="badge badge-danger text-[11px]">🔴 Kelmadi</span>
+                                    {% else %}
+                                    <span class="badge badge-warning text-[11px]">🟡 Sababli</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="py-6 text-center text-slate-400 text-xs">Davomat yozuvlari mavjud emas.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payments History -->
+            <div class="modern-card p-6">
+                <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                    💳 <span>To'lovlar Tarixi</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-100 text-slate-400 text-xs uppercase">
+                                <th class="pb-2 font-medium">Oy</th>
+                                <th class="pb-2 font-medium">Guruh</th>
+                                <th class="pb-2 font-medium">Summa</th>
+                                <th class="pb-2 font-medium">Turi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for r in records %}
+                            <tr>
+                                <td class="py-2.5 font-medium text-slate-800 text-xs">{{ r.month_for }}</td>
+                                <td class="py-2.5 text-slate-600 text-xs">{{ r.group_name }}</td>
+                                <td class="py-2.5 font-bold text-slate-900 text-xs">{{ "%.0f"|format(r.amount) }} so'm</td>
+                                <td class="py-2.5 text-xs text-slate-500">{{ r.payment_type|capitalize }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="py-6 text-center text-slate-400 text-xs">To'lov ma'lumotlari mavjud emas.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Feedback / Question Form -->
+        <div class="modern-card p-6 bg-gradient-to-br from-white to-blue-50/40">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                    💬
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base">Ustozga yoki Markazga Savol / Taklif</h3>
+                    <p class="text-xs text-slate-500">Darslar yoki sharoit bo'yicha savolingiz bormi? Yozib qoldiring, ma'muriyat tezda ko'rib chiqadi.</p>
+                </div>
+            </div>
+            <form id="studentFeedbackForm" class="space-y-3 mt-4">
+                <input type="hidden" name="user_id" value="{{ student.id }}">
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Toifa</label>
+                        <select name="feedback_type" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="savol">❓ Dars bo'yicha savol</option>
+                            <option value="taklif">💡 Yangi taklif</option>
+                            <option value="shikoyat">⚠️ Shikoyat yoki kamchilik</option>
+                            <option value="boshqa">📝 Boshqa mavzu</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Xabar matni</label>
+                        <input type="text" name="message" required placeholder="Savol yoki fikringizni yozing..." class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="btn-primary text-xs py-2 px-5 bg-blue-600 hover:bg-blue-700">
+                        Yuborish ✈️
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        function showToast(msg, isErr = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = isErr ? '#ef4444' : '#10b981';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+
+        const form = document.getElementById('studentFeedbackForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                try {
+                    const res = await fetch('/feedback/create', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (res.ok && data.status === 'success') {
+                        showToast(data.message || "Xabaringiz yetkazildi!");
+                        form.reset();
+                    } else {
+                        showToast(data.message || "Xatolik!", true);
+                    }
+                } catch (err) {
+                    showToast("Server bilan bog'lanishda xatolik!", true);
+                }
+            });
+        }
+
+        // Telegram Web App auto-expand
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+    </script>
+</body>
+</html>
