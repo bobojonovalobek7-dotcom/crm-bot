@@ -1,5 +1,5 @@
 import httpx
-from config import BOT_TOKEN
+from config import BOT_TOKEN, PROXY_URL
 from database.db import (
     get_user_by_id,
     get_group_by_id,
@@ -16,7 +16,7 @@ async def send_telegram_notification(chat_id: int | None, text: str) -> bool:
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(proxy=PROXY_URL, timeout=10.0) as client:
             resp = await client.post(url, json=payload)
             return resp.status_code == 200
     except Exception as e:

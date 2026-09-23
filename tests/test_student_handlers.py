@@ -121,3 +121,7 @@ def test_role_menus_cover_parent_and_teacher_actions():
     assert any("Guruhlarim".lower() in text.lower() for text in teacher)
     assert any("Davomat".lower() in text.lower() for text in teacher)
     assert any("Yangi admin".lower() in text.lower() for text in admin)
+
+    super_admin_kb = [button.text for row in get_main_keyboard("super_admin").keyboard for button in row]
+    assert any("adminlar".lower() in text.lower() for text in super_admin_kb)
+    assert any("yangi admin".lower() in text.lower() for text in super_admin_kb)

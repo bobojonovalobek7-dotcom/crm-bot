@@ -5,7 +5,20 @@ def get_main_keyboard(role: str = "parent", webapp_url: str | None = None):
     role_name = (role or "parent").lower()
     has_https_webapp = bool(webapp_url and str(webapp_url).startswith("https://"))
 
-    if role_name in {"admin", "super_admin"}:
+    if role_name == "super_admin":
+        crm_btn = (
+            KeyboardButton(text="📊 CRM Web App", web_app=WebAppInfo(url=webapp_url))
+            if has_https_webapp
+            else KeyboardButton(text="📊 CRM Web App")
+        )
+        kb = [
+            [crm_btn, KeyboardButton(text="👥 Adminlar")],
+            [KeyboardButton(text="👤 Yangi admin"), KeyboardButton(text="👨‍🏫 Yangi ustoz")],
+            [KeyboardButton(text="💰 Yangi to'lov"), KeyboardButton(text="📈 Hisobotlar")],
+            [KeyboardButton(text="💬 Murojaatlar"), KeyboardButton(text="📣 Xabar yuborish")],
+            [KeyboardButton(text="🔄 Qayta ishga tushirish")],
+        ]
+    elif role_name == "admin":
         crm_btn = (
             KeyboardButton(text="📊 CRM Web App", web_app=WebAppInfo(url=webapp_url))
             if has_https_webapp

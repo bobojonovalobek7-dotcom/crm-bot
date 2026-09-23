@@ -2,7 +2,7 @@ import aiosqlite
 from aiogram import Bot, Router, F
 from aiogram.types import Message, CallbackQuery
 
-from config import BOT_TOKEN, is_admin, is_super_admin, get_webapp_url
+from config import BOT_TOKEN, SUPER_ADMIN_IDS, is_admin, is_super_admin, get_webapp_url
 from database.db import (
     add_user,
     get_user,
@@ -14,9 +14,16 @@ from database.db import (
     get_feedbacks,
     get_feedback_by_id,
     reply_to_feedback,
+    remove_admin,
+    remove_admin_by_telegram_id,
 )
 from database.models import DB_NAME
-from bot.keyboards.inline import get_admin_broadcast_keyboard, get_admin_feedback_action_keyboard
+from bot.keyboards.inline import (
+    get_admin_broadcast_keyboard,
+    get_admin_feedback_action_keyboard,
+    get_admins_management_keyboard,
+    get_confirm_delete_admin_keyboard,
+)
 from services.notifications import notify_payment_receipt, notify_feedback_reply
 
 router = Router()
@@ -61,6 +68,10 @@ def should_cancel_creation_session(value: str) -> bool:
         "💬 murojaatlar",
         "/feedbacks",
         "/murojaatlar",
+        "adminlar",
+        "👥 adminlar",
+        "/admins",
+        "/adminlar",
         "xabar yuborish",
         "📣 xabar yuborish",
         "qayta ishga tushirish",
@@ -456,4 +467,151 @@ async def handle_broadcast_message(message: Message) -> bool:
 
     await message.answer(f"✅ Xabar muvaffaqiyatli tarqatildi!\nJami qabul qilganlar: {sent} ta foydalanuvchi.")
     return True
+
+
+# ==================== SUPER ADMIN: MANAGE ADMINS ====================
+
+@router.message(F.text.in_({"👥 Adminlar", "adminlar", "/admins", "/adminlar"}))
+async def list_admins_command(message: Message):
+    if not is_super_admin(message.from_user.id):
+        await message.answer("❌ Bu bo'lim faqat Super Admin uchun ochiq.")
+        return
+
+    admins = await get_users_by_role("admin")
+    super_admins = await get_users_by_role("super_admin")
+
+    # Combine ensuring unique
+    seen_ids = set()
+    all_admins = []
+    for u in super_admins + admins:
+        if u["id"] not in seen_ids:
+            seen_ids.add(u["id"])
+            all_admins.append(u)
+
+    if not all_admins:
+        # Fallback to current user
+        all_admins = [await get_user(message.from_user.id)]
+
+    text = (
+        "👑 <b>Adminlar va Boshqaruvchilar Ro'yxati:</b>\n\n"
+        f"Jami adminlar soni: <b>{len(all_admins)}</b> ta\n\n"
+    )
+
+    for idx, adm in enumerate(all_admins, 1):
+        role_badge = "👑 Super Admin" if (adm.get("telegram_id") in SUPER_ADMIN_IDS or adm.get("role") == "super_admin") else "🛡 Admin"
+        phone = adm.get("phone") or "Telefon yo'q"
+        tid = adm.get("telegram_id") or "Kiritilmagan"
+        text += (
+            f"<b>{idx}. {adm['full_name']}</b> ({role_badge})\n"
+            f"   📞 {phone} | 🆔 <code>{tid}</code>\n\n"
+        )
+
+    text += "Adminni o'chirish yoki yangi admin qo'shish uchun quyidagi tugmalardan foydalaning:"
+    kb = get_admins_management_keyboard(all_admins, SUPER_ADMIN_IDS)
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("del_adm_"))
+async def prompt_delete_admin(call: CallbackQuery):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Faqat Super Admin uchun!", show_alert=True)
+        return
+
+    admin_id = int(call.data.replace("del_adm_", ""))
+    target = await get_user_by_id(admin_id)
+    if not target:
+        await call.answer("Admin topilmadi.", show_alert=True)
+        return
+
+    if target.get("telegram_id") in SUPER_ADMIN_IDS:
+        await call.answer("Super Adminni o'chirib bo'lmaydi!", show_alert=True)
+        return
+
+    text = (
+        f"⚠️ <b>Haqiqatan ham {target['full_name']} adminlik huquqini bekor qilmoqchimisiz?</b>\n\n"
+        f"Telefon: {target['phone'] or 'Yo\'q'}\n"
+        f"Telegram ID: {target['telegram_id'] or 'Yo\'q'}\n\n"
+        f"O'chirilgach, u bot va CRM admin boshqaruvidan mahrum bo'ladi."
+    )
+    await call.message.edit_text(text, reply_markup=get_confirm_delete_admin_keyboard(admin_id), parse_mode="HTML")
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("confirm_del_adm_"))
+async def confirm_delete_admin(call: CallbackQuery):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Faqat Super Admin uchun!", show_alert=True)
+        return
+
+    admin_id = int(call.data.replace("confirm_del_adm_", ""))
+    target = await get_user_by_id(admin_id)
+    if not target:
+        await call.answer("Admin topilmadi.", show_alert=True)
+        return
+
+    if target.get("telegram_id") in SUPER_ADMIN_IDS:
+        await call.answer("Super Adminni o'chirib bo'lmaydi!", show_alert=True)
+        return
+
+    await remove_admin(admin_id)
+    await call.message.edit_text(
+        f"✅ <b>{target['full_name']}</b> adminlikdan muvaffaqiyatli o'chirildi!\n\n"
+        "Adminlar ro'yxatiga qaytish uchun: /admins",
+        parse_mode="HTML"
+    )
+    await call.answer("Admin o'chirildi!")
+
+
+@router.callback_query(F.data == "cancel_del_adm")
+async def cancel_delete_admin(call: CallbackQuery):
+    await call.message.edit_text("❌ Adminni o'chirish bekor qilindi.")
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm_add_new")
+async def callback_add_new_admin(call: CallbackQuery):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Faqat Super Admin uchun!", show_alert=True)
+        return
+
+    await call.answer()
+    await start_creation_wizard(call.message, role="admin", label="Admin")
+
+
+@router.message(F.text.startswith("/delete_admin") | F.text.startswith("/remove_admin"))
+async def delete_admin_text_command(message: Message):
+    if not is_super_admin(message.from_user.id):
+        await message.answer("❌ Bu buyruq faqat Super Admin uchun.")
+        return
+
+    parts = (message.text or "").split()
+    if len(parts) < 2:
+        await message.answer("❗ Format: <code>/delete_admin &lt;admin_id yoki telegram_id&gt;</code>", parse_mode="HTML")
+        return
+
+    raw_id = parts[1].strip()
+    try:
+        parsed_id = int(raw_id)
+    except ValueError:
+        await message.answer("❗ ID raqam bo'lishi kerak.")
+        return
+
+    if parsed_id in SUPER_ADMIN_IDS:
+        await message.answer("❌ Super Adminni o'chirib bo'lmaydi!")
+        return
+
+    # Try by user_id first, then telegram_id
+    target = await get_user_by_id(parsed_id)
+    if target and target.get("role") == "admin":
+        await remove_admin(target["id"])
+        await message.answer(f"✅ Admin <b>{target['full_name']}</b> muvaffaqiyatli o'chirildi!", parse_mode="HTML")
+        return
+
+    target_tg = await get_user(parsed_id)
+    if target_tg and target_tg.get("role") == "admin":
+        await remove_admin(target_tg["id"])
+        await message.answer(f"✅ Admin <b>{target_tg['full_name']}</b> muvaffaqiyatli o'chirildi!", parse_mode="HTML")
+        return
+
+    await message.answer(f"❗ ID={parsed_id} bo'yicha admin topilmadi.")
 

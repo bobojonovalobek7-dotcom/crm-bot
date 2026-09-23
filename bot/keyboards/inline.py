@@ -94,3 +94,35 @@ def get_admin_feedback_action_keyboard(feedback_id: int) -> InlineKeyboardMarkup
         ]
     )
 
+
+def get_admins_management_keyboard(admins: list, super_admin_ids: list[int] | None = None) -> InlineKeyboardMarkup:
+    super_admin_ids = super_admin_ids or []
+    buttons = []
+    for adm in admins:
+        tid = adm.get("telegram_id")
+        name = adm.get("full_name", "Admin")
+        adm_id = adm.get("id")
+        if tid and tid in super_admin_ids:
+            buttons.append([
+                InlineKeyboardButton(text=f"👑 {name} (Super Admin)", callback_data="adm_noop")
+            ])
+        else:
+            buttons.append([
+                InlineKeyboardButton(text=f"🛡 {name}", callback_data="adm_noop"),
+                InlineKeyboardButton(text="❌ O'chirish", callback_data=f"del_adm_{adm_id}")
+            ])
+
+    buttons.append([
+        InlineKeyboardButton(text="➕ Yangi admin qo'shish", callback_data="adm_add_new")
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_confirm_delete_admin_keyboard(admin_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⚠️ Ha, admin o'chirilsin", callback_data=f"confirm_del_adm_{admin_id}")],
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel_del_adm")],
+        ]
+    )
+

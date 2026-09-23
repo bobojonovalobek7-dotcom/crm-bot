@@ -1,6 +1,7 @@
 import logging
 from aiogram import Bot, Dispatcher
-from config import BOT_TOKEN, WEBAPP_BASE_URL
+from aiogram.client.session.aiohttp import AiohttpSession
+from config import BOT_TOKEN, WEBAPP_BASE_URL, PROXY_URL
 from bot.handlers import admin, student, teacher
 from database.models import init_db
 
@@ -10,7 +11,8 @@ async def main():
 
     await init_db()
 
-    bot = Bot(token=BOT_TOKEN)
+    session = AiohttpSession(proxy=PROXY_URL) if PROXY_URL else None
+    bot = Bot(token=BOT_TOKEN, session=session)
     dp = Dispatcher()
 
     dp.include_router(admin.router)

@@ -12,7 +12,7 @@ import httpx
 from openpyxl import Workbook
 import aiosqlite
 
-from config import BOT_TOKEN, DATABASE_PATH
+from config import BOT_TOKEN, DATABASE_PATH, PROXY_URL
 from database.models import DB_NAME, init_db
 from database.db import (
     get_db,
@@ -63,7 +63,7 @@ async def send_telegram_msg(user_id: int, text: str):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": user_id, "text": text, "parse_mode": "HTML"}
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(proxy=PROXY_URL, timeout=10.0) as client:
             await client.post(url, json=payload)
     except Exception as e:
         print(f"Failed to send Telegram message to {user_id}: {e}")

@@ -406,3 +406,9 @@ async def remove_admin(user_id: int):
     async with get_db() as db:
         await db.execute("DELETE FROM users WHERE id = ? AND role = 'admin'", (user_id,))
         await db.commit()
+
+
+async def remove_admin_by_telegram_id(telegram_id: int):
+    async with get_db() as db:
+        await db.execute("DELETE FROM users WHERE telegram_id = ? AND role = 'admin'", (telegram_id,))
+        await db.commit()
