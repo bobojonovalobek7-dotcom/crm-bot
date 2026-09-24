@@ -91,7 +91,7 @@ def test_super_admin_role_priority_over_parent_db_role():
 def test_admin_keyboard_uses_https_safe_button():
     keyboard = get_main_keyboard("admin")
     texts = [button.text for row in keyboard.keyboard for button in row]
-    assert any("CRM Web App".lower() in text.lower() for text in texts)
+    assert not any("CRM Web App".lower() in text.lower() for text in texts)
     assert any("Yangi admin".lower() in text.lower() for text in texts)
     assert any("Yangi ustoz".lower() in text.lower() for text in texts)
     assert any("Yangi to'lov".lower() in text.lower() for text in texts)

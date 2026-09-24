@@ -19,10 +19,14 @@
                     <h1 class="text-xl font-bold text-slate-900 leading-tight">EduCenter CRM</h1>
                     <p class="text-xs text-slate-500">Zahro o'quv markazi boshqaruv tizimi</p>
                 </div>
+            <div class="flex items-center gap-3">
+                <a href="/login" class="btn-secondary text-sm py-2 px-4 font-semibold text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100">
+                    🔐 Kirish (Login)
+                </a>
+                <a href="https://t.me/zahro_crm_bot" target="_blank" class="btn-primary text-sm py-2 px-4">
+                    🤖 Telegram Bot
+                </a>
             </div>
-            <a href="https://t.me/zahro_crm_bot" target="_blank" class="btn-primary text-sm py-2 px-4">
-                🤖 Telegram Bot (@zahro_crm_bot)
-            </a>
         </div>
     </header>
 
@@ -116,6 +120,21 @@
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.expand();
+            const initData = window.Telegram.WebApp.initData;
+            if (initData) {
+                fetch("/api/auth/telegram", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ init_data: initData })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === "success" && data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    }
+                })
+                .catch(err => console.log("Telegram auth note:", err));
+            }
         }
     </script>
 </body>

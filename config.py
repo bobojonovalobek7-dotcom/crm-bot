@@ -41,6 +41,7 @@ WEBAPP_BASE_URL = os.getenv("WEBAPP_BASE_URL", "http://localhost:8000")
 DATABASE_PATH = os.getenv("DATABASE_PATH", "educenter.db")
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{DATABASE_PATH}")
 PROXY_URL = os.getenv("PROXY_URL", "").strip() or None
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "zahro2026").strip()
 
 
 def is_super_admin(telegram_id: int | None) -> bool:

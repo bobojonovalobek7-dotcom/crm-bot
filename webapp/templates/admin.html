@@ -25,11 +25,14 @@
             <div class="flex items-center gap-2">
                 <span class="badge badge-primary">🛡 Super Admin</span>
                 <a href="/admin/backup" class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 border-indigo-200 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 shadow-sm" title="Baza faylini to'liq yuklab olish">
-                    💾 <span>Baza Zaxirasi (Backup)</span>
+                    💾 <span>Baza Zaxirasi</span>
                 </a>
                 <a href="/" class="btn-secondary text-xs py-1.5 px-3">Bosh sahifa</a>
+                <a href="/logout" class="btn-secondary text-xs py-1.5 px-3 border-rose-200 text-rose-600 bg-rose-50/50 hover:bg-rose-100" title="Tizimdan chiqish">
+                    🚪 Chiqish
+                </a>
                 <a href="https://t.me/zahro_crm_bot" target="_blank" class="btn-primary text-xs py-1.5 px-3">
-                    🤖 Telegram Bot
+                    🤖 Bot
                 </a>
             </div>
         </div>
@@ -70,7 +73,7 @@
         </div>
 
         <!-- Tabs Navigation -->
-        <div class="modern-card p-2 flex flex-wrap gap-2">
+        <div class="modern-card p-2 flex overflow-x-auto gap-2 tab-nav-container no-scrollbar">
             <button class="tab-btn active" onclick="openTab('overview')">📊 Umumiy ko'rinish</button>
             <button class="tab-btn" onclick="openTab('groups')">📚 Guruhlar & Biriktirish</button>
             <button class="tab-btn" onclick="openTab('family')">👨‍👩‍👧 Oila (Ota-ona & Farzand)</button>
@@ -78,7 +81,7 @@
             <button class="tab-btn" onclick="openTab('attendance')">✅ Davomat Kiritish</button>
             <button class="tab-btn" onclick="openTab('feedbacks')">💬 Murojaatlar</button>
             <button class="tab-btn" onclick="openTab('users')">👥 Foydalanuvchilar</button>
-            <button class="tab-btn" onclick="openTab('superadmin')">👑 Super Admin</button>
+            <button class="tab-btn" id="tab-btn-superadmin" onclick="openTab('superadmin')">👑 Super Admin</button>
             <button class="tab-btn" onclick="openTab('export')">📤 Eksport & Xabarnoma</button>
         </div>
 
@@ -857,6 +860,15 @@
             if (!form) return;
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn ? submitBtn.innerHTML : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '⏳ Bajarilmoqda...';
+                    submitBtn.style.opacity = '0.7';
+                    submitBtn.style.cursor = 'wait';
+                }
+                
                 const formData = new FormData(form);
                 try {
                     const res = await fetch(endpoint, {
@@ -870,9 +882,21 @@
                         setTimeout(() => window.location.reload(), 1200);
                     } else {
                         showToast(data.detail || data.message || "Xatolik yuz berdi!", true);
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.style.opacity = '1';
+                            submitBtn.style.cursor = 'pointer';
+                        }
                     }
                 } catch (err) {
                     showToast("Server bilan bog'lanishda xatolik!", true);
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+                    }
                 }
             });
         }

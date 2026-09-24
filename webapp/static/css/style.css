@@ -231,3 +231,30 @@ body {
 #toast.show {
     transform: translateY(0);
 }
+
+/* Mobile & WebApp Responsive Enhancements */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.tab-nav-container {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+    .tab-btn {
+        padding: 0.5rem 0.85rem;
+        font-size: 0.825rem;
+        white-space: nowrap;
+    }
+    .custom-table th, .custom-table td {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}

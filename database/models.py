@@ -4,8 +4,10 @@ DB_NAME = "educenter.db"
 
 
 async def init_db():
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=30.0) as db:
         await db.execute("PRAGMA foreign_keys = ON;")
+        await db.execute("PRAGMA journal_mode = WAL;")
+        await db.execute("PRAGMA busy_timeout = 30000;")
 
         # Foydalanuvchilar (O'quvchi, O'qituvchi, Admin, Ota-ona)
         await db.execute("""

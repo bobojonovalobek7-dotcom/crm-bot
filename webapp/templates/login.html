@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduCenter CRM — Kirish</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --border-color: #334155;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 75%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            margin: 0;
+        }
+        .login-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.25rem;
+            padding: 2.25rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        .logo-box {
+            width: 3.5rem;
+            height: 3.5rem;
+            background: linear-gradient(135deg, #4f46e5, #06b6d4);
+            border-radius: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
+        }
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+        }
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin: 0 0 1.75rem 0;
+        }
+        .form-group {
+            text-align: left;
+            margin-bottom: 1.25rem;
+        }
+        label {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #fff;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+        }
+        .btn-submit {
+            width: 100%;
+            background: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.8125rem;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            margin-top: 0.5rem;
+        }
+        .btn-submit:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+        .status-msg {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            display: none;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+        }
+        .status-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+        .status-success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+        .tg-loader {
+            display: none;
+            padding: 1.5rem 0;
+        }
+        .spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 0.75rem auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo-box">🎓</div>
+        <h2>EduCenter CRM</h2>
+        <p class="subtitle">Boshqaruv tizimiga xavfsiz kirish</p>
+
+        <div id="tg-loader" class="tg-loader">
+            <div class="spinner"></div>
+            <p class="text-sm text-slate-300">Telegram orqali avtomatik tasdiqlanmoqda...</p>
+        </div>
+
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="telegram_id">Telegram ID yoki Telefon</label>
+                <input type="text" id="telegram_id" placeholder="Masalan: 5341602920" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Admin Paroli</label>
+                <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-submit" id="submit-btn">Tizimga kirish</button>
+        </form>
+
+        <div id="status-box" class="status-msg"></div>
+    </div>
+
+    <script>
+        // Telegram Web App auto-login check
+        document.addEventListener("DOMContentLoaded", async () => {
+            const tg = window.Telegram?.WebApp;
+            if (tg && tg.initData) {
+                document.getElementById("login-form").style.display = "none";
+                document.getElementById("tg-loader").style.display = "block";
+                
+                try {
+                    const res = await fetch("/api/auth/telegram", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ init_data: tg.initData })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.status === "success") {
+                        window.location.href = data.redirect_url || "/admin";
+                        return;
+                    }
+                } catch (e) {
+                    console.log("Auto-login note:", e);
+                }
+                
+                // Fallback to manual form if auto-login didn't match
+                document.getElementById("tg-loader").style.display = "none";
+                document.getElementById("login-form").style.display = "block";
+            }
+        });
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById("submit-btn");
+            const statusBox = document.getElementById("status-box");
+            btn.disabled = true;
+            btn.textContent = "Tekshirilmoqda...";
+            statusBox.style.display = "none";
+
+            const telegram_id = document.getElementById("telegram_id").value.trim();
+            const password = document.getElementById("password").value;
+
+            try {
+                const res = await fetch("/api/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id, password })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.status === "success") {
+                    statusBox.className = "status-msg status-success";
+                    statusBox.textContent = "Muvaffaqiyatli kirildi! Yo'naltirilmoqda...";
+                    statusBox.style.display = "block";
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url || "/admin";
+                    }, 500);
+                } else {
+                    statusBox.className = "status-msg status-error";
+                    statusBox.textContent = data.detail || data.message || "Kirish ma'lumotlari noto'g'ri.";
+                    statusBox.style.display = "block";
+                    btn.disabled = false;
+                    btn.textContent = "Tizimga kirish";
+                }
+            } catch (err) {
+                statusBox.className = "status-msg status-error";
+                statusBox.textContent = "Server bilan aloqa uzildi. Qayta urinib ko'ring.";
+                statusBox.style.display = "block";
+                btn.disabled = false;
+                btn.textContent = "Tizimga kirish";
+            }
+        }
+    </script>
+</body>
+</html>

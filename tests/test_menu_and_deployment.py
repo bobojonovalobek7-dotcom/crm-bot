@@ -56,28 +56,20 @@ async def test_update_user_role_in_db():
 
 
 def test_main_keyboard_webapp_attachment():
-    # 1. Without HTTPS URL
-    kb_http = get_main_keyboard("admin", webapp_url="http://localhost:8000/admin")
-    crm_btn_http = next(
-        b for row in kb_http.keyboard for b in row if "CRM Web App" in b.text
-    )
-    assert crm_btn_http.web_app is None
+    # Verify CRM Web App is removed from reply keyboard to avoid clutter (dedicated blue chat menu button used)
+    kb_admin = get_main_keyboard("admin")
+    admin_texts = [b.text for row in kb_admin.keyboard for b in row]
+    assert "📊 CRM Web App" not in admin_texts
+    assert "👤 Yangi admin" in admin_texts
 
-    # 2. With HTTPS URL
-    https_url = "https://crm.educenter.uz/admin"
-    kb_https = get_main_keyboard("admin", webapp_url=https_url)
-    crm_btn_https = next(
-        b for row in kb_https.keyboard for b in row if "CRM Web App" in b.text
-    )
-    assert crm_btn_https.web_app is not None
-    assert crm_btn_https.web_app.url == https_url
-
-    # 3. Verify Shaxsiy kabinet is removed from parent and student keyboards
+    # Verify Shaxsiy kabinet & CRM Web App are not cluttering parent and student keyboards
     kb_parent = get_main_keyboard("parent")
     parent_texts = [b.text for row in kb_parent.keyboard for b in row]
     assert "📱 Shaxsiy kabinet" not in parent_texts
+    assert "📊 CRM Web App" not in parent_texts
 
     kb_student = get_main_keyboard("student")
     student_texts = [b.text for row in kb_student.keyboard for b in row]
     assert "📱 Shaxsiy kabinet" not in student_texts
+    assert "📊 CRM Web App" not in student_texts
 

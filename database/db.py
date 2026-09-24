@@ -6,8 +6,10 @@ from database.models import DB_NAME
 
 @asynccontextmanager
 async def get_db():
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=30.0) as db:
         await db.execute("PRAGMA foreign_keys = ON;")
+        await db.execute("PRAGMA journal_mode = WAL;")
+        await db.execute("PRAGMA busy_timeout = 30000;")
         db.row_factory = aiosqlite.Row
         yield db
 
