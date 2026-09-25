@@ -1,6 +1,6 @@
 import aiosqlite
 from aiogram import Bot, Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 from config import BOT_TOKEN, SUPER_ADMIN_IDS, is_admin, is_super_admin, get_webapp_url
 from database.db import (
@@ -11,6 +11,9 @@ from database.db import (
     get_all_users,
     get_users_by_role,
     add_payment,
+    get_groups,
+    get_group_by_id,
+    get_group_students,
     get_feedbacks,
     get_feedback_by_id,
     reply_to_feedback,
@@ -30,6 +33,7 @@ router = Router()
 CREATION_SESSIONS: dict[int, dict[str, str]] = {}
 BROADCAST_SESSIONS: dict[int, dict[str, str]] = {}
 ADMIN_REPLY_SESSIONS: dict[int, int] = {}
+PAYMENT_WIZARD_SESSIONS: dict[int, dict] = {}
 _FAKE_TELEGRAM_IDS = {123456789, 111111111, 999999999, 1234567890, 1000000000}
 
 
@@ -88,8 +92,13 @@ async def _is_real_telegram_user(telegram_id: int, bot: Bot | None = None) -> bo
     return True
 
 
-def _is_admin_user(user_id: int | None) -> bool:
-    return bool(is_super_admin(user_id) or is_admin(user_id))
+async def _is_admin_user(user_id: int | None) -> bool:
+    if not user_id:
+        return False
+    if is_super_admin(user_id) or is_admin(user_id):
+        return True
+    user = await get_user(user_id)
+    return bool(user and user.get("role") in {"super_admin", "admin"})
 
 
 def is_admin_creation_cmd(text: str) -> bool:
@@ -98,9 +107,10 @@ def is_admin_creation_cmd(text: str) -> bool:
     norm = text.strip().lower()
     if any(norm.startswith(cmd) for cmd in ["/create_admin", "/add_admin", "/addadmin", "/new_admin"]):
         return True
-    if norm in {"👤 yangi admin", "yangi admin"}:
+    clean = "".join(ch for ch in norm if ch.isalnum() or ch.isspace() or ch in "'-")
+    if "admin" in clean and any(k in clean for k in ["qo'sh", "qosh", "yarat", "yangi"]):
         return True
-    if "admin" in norm and any(k in norm for k in ["qo'sh", "qosh", "yarat", "yangi"]):
+    if clean.strip() in {"yangi admin", "admin qoshish", "admin qo'shish", "admin"}:
         return True
     return False
 
@@ -111,16 +121,32 @@ def is_teacher_creation_cmd(text: str) -> bool:
     norm = text.strip().lower()
     if any(norm.startswith(cmd) for cmd in ["/create_teacher", "/add_teacher", "/addteacher", "/new_teacher"]):
         return True
-    if norm in {"👨‍🏫 yangi ustoz", "yangi ustoz"}:
+    clean = "".join(ch for ch in norm if ch.isalnum() or ch.isspace() or ch in "'-")
+    if any(t in clean for t in ["ustoz", "o'qituvchi", "oqituvchi", "teacher"]) and any(k in clean for k in ["qo'sh", "qosh", "yarat", "yangi"]):
         return True
-    if any(t in norm for t in ["ustoz", "o'qituvchi", "oqituvchi", "teacher"]) and any(k in norm for k in ["qo'sh", "qosh", "yarat", "yangi"]):
+    if clean.strip() in {"yangi ustoz", "ustoz qoshish", "ustoz qo'shish"}:
         return True
+    return False
+
+
+def is_payment_cmd(text: str) -> bool:
+    if not text:
+        return False
+    norm = text.strip().lower()
+    if any(norm.startswith(cmd) for cmd in ["/add_payment", "/addpayment", "/pay"]):
+        return True
+    clean = "".join(ch for ch in norm if ch.isalnum() or ch.isspace() or ch in "'-")
+    if any(p in clean for p in ["tolov", "to'lov", "tulov"]):
+        if any(k in clean for k in ["yangi", "qabul", "qilish", "qo'sh", "qosh"]):
+            return True
+        if clean.strip() in {"tolov", "to'lov", "yangi to'lov", "yangi tolov"}:
+            return True
     return False
 
 
 async def start_creation_wizard(message: Message, role: str, label: str, target_user_id: int | None = None):
     caller_id = target_user_id or (message.from_user.id if message.from_user else None)
-    if not _is_admin_user(caller_id):
+    if not await _is_admin_user(caller_id):
         await message.answer("❌ Bu buyruq faqat admin va super admin uchun.")
         return
 
@@ -210,7 +236,7 @@ async def _handle_creation_step(message: Message):
 
 
 async def _create_user_via_bot(message: Message, role: str, command_name: str):
-    if not _is_admin_user(message.from_user.id):
+    if not await _is_admin_user(message.from_user.id):
         await message.answer("❌ Bu buyruq faqat admin va super admin uchun.")
         return
 
@@ -237,22 +263,146 @@ async def _create_user_via_bot(message: Message, role: str, command_name: str):
     await message.answer(f"✅ {role.upper()} muvaffaqiyatli yaratildi: {full_name}")
 
 
+async def start_payment_wizard(message: Message, target_user_id: int | None = None):
+    caller_id = target_user_id or (message.from_user.id if message.from_user else None)
+    if not await _is_admin_user(caller_id):
+        await message.answer("❌ Bu buyruq faqat adminlar uchun.")
+        return
+
+    groups = await get_groups()
+    if not groups:
+        await message.answer(
+            "ℹ️ Hozircha tizimda guruhlar mavjud emas.\n"
+            f"Avval guruh yaratishingiz lozim: {get_webapp_url('/admin')}"
+        )
+        return
+
+    PAYMENT_WIZARD_SESSIONS[caller_id] = {
+        "step": "choose_group"
+    }
+
+    buttons = []
+    for g in groups[:8]:
+        fee = g.get("monthly_fee", 0)
+        fee_str = f" ({fee:,.0f} so'm)" if fee else ""
+        buttons.append([
+            InlineKeyboardButton(text=f"📚 {g['name']}{fee_str}", callback_data=f"pw_g_{g['id']}")
+        ])
+
+    webapp_url = get_webapp_url("/admin")
+    if webapp_url.startswith("https://"):
+        buttons.append([InlineKeyboardButton(text="📱 Web App orqali to'lov", web_app=WebAppInfo(url=webapp_url))])
+    else:
+        buttons.append([InlineKeyboardButton(text="🌐 CRM da to'lov qilish", url=webapp_url)])
+    buttons.append([InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pw_cancel")])
+
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await message.answer(
+        "💰 <b>Yangi to'lov qabul qilish</b> (1/4 bosqich):\n\n"
+        "Qaysi <b>guruh</b> uchun to'lov qilinmoqda? Guruhni tanlang:",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
+
+
+async def _handle_payment_wizard_text(message: Message) -> bool:
+    user_id = message.from_user.id
+    session = PAYMENT_WIZARD_SESSIONS.get(user_id)
+    if not session:
+        return False
+
+    text = (message.text or "").strip()
+    if text.lower() in {"cancel", "bekor", "bekor qilish", "/cancel"}:
+        PAYMENT_WIZARD_SESSIONS.pop(user_id, None)
+        await message.answer("❌ To'lov qabul qilish bekor qilindi.")
+        return True
+
+    step = session.get("step")
+
+    if step == "input_student_manual":
+        if text.isdigit():
+            std_id = int(text)
+            std = await get_user_by_id(std_id)
+            student_name = std["full_name"] if std else f"O'quvchi #{std_id}"
+            session["student_id"] = std_id
+            session["student_name"] = student_name
+        else:
+            all_stds = await get_users_by_role("student")
+            match = next((s for s in all_stds if text.lower() in s["full_name"].lower()), None)
+            if match:
+                session["student_id"] = match["id"]
+                session["student_name"] = match["full_name"]
+            else:
+                await add_user(telegram_id=None, full_name=text, role="student")
+                from database.db import get_db
+                async with get_db() as db:
+                    async with db.execute("SELECT id FROM users WHERE full_name = ? ORDER BY id DESC LIMIT 1", (text,)) as cur:
+                        row = await cur.fetchone()
+                        session["student_id"] = row[0] if row else 1
+                session["student_name"] = text
+
+        session["step"] = "choose_amount"
+        monthly_fee = float(session.get("monthly_fee", 400000))
+        half_fee = monthly_fee / 2.0
+
+        buttons = [
+            [InlineKeyboardButton(text=f"💵 {monthly_fee:,.0f} so'm (To'liq oy)", callback_data=f"pw_amt_{int(monthly_fee)}")],
+            [InlineKeyboardButton(text=f"💵 {half_fee:,.0f} so'm (Yarim oy)", callback_data=f"pw_amt_{int(half_fee)}")],
+            [InlineKeyboardButton(text="✍️ Boshqa summa kiritish", callback_data="pw_amt_manual")],
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pw_cancel")],
+        ]
+        kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+        await message.answer(
+            f"💵 <b>To'lov summasi</b> (3/4 bosqich):\n\n"
+            f"👤 <b>O'quvchi:</b> {session['student_name']}\n"
+            f"📚 <b>Guruh:</b> {session['group_name']}\n\n"
+            f"To'lov summasini tanlang yoki raqam yozing:",
+            reply_markup=kb,
+            parse_mode="HTML"
+        )
+        return True
+
+    if step == "input_amount_manual":
+        clean_num = "".join(ch for ch in text if ch.isdigit() or ch == ".")
+        try:
+            val = float(clean_num)
+            if val <= 0:
+                await message.answer("❗ Summa musbat son bo'lishi kerak. Qayta kiriting:")
+                return True
+        except ValueError:
+            await message.answer("❗ Summani raqamda kiriting (masalan: 350000):")
+            return True
+
+        session["amount"] = val
+        session["step"] = "choose_type"
+        buttons = [
+            [InlineKeyboardButton(text="💵 Naqd pul", callback_data="pw_type_naqd")],
+            [InlineKeyboardButton(text="💳 Plastik karta", callback_data="pw_type_karta")],
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pw_cancel")],
+        ]
+        kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+        await message.answer(
+            f"💳 <b>To'lov usuli</b> (4/4 bosqich):\n\n"
+            f"👤 <b>O'quvchi:</b> {session['student_name']}\n"
+            f"📚 <b>Guruh:</b> {session['group_name']}\n"
+            f"💵 <b>Summa:</b> {val:,.0f} so'm\n\n"
+            f"To'lov qaysi usulda amalga oshirilmoqda?",
+            reply_markup=kb,
+            parse_mode="HTML"
+        )
+        return True
+
+    return False
+
+
 async def _create_payment_via_bot(message: Message):
-    if not _is_admin_user(message.from_user.id):
+    if not await _is_admin_user(message.from_user.id):
         await message.answer("❌ To'lov qabul qilish faqat adminlar uchun.")
         return
 
     text = (message.text or "").strip()
-    if text.lower() in {"/add_payment", "/add_payment ", "yangi to'lov", "💰 yangi to'lov"}:
-        await message.answer(
-            "💳 <b>To'lovni qabul qilish formati:</b>\n\n"
-            "<code>/add_payment student_id | group_id | amount | payment_type | month_for | note</code>\n\n"
-            "Misol:\n"
-            "<code>/add_payment 1 | 1 | 350000 | naqd | 2026-09 | Sentyabr oyi uchun</code>\n\n"
-            "<i>Yoki WebApp CRM orqali qulayroq qabul qilishingiz mumkin:</i>\n"
-            f"👉 {get_webapp_url('/admin')}",
-            parse_mode="HTML",
-        )
+    if "|" not in text:
+        await start_payment_wizard(message)
         return
 
     parts = [part.strip() for part in text.replace("/add_payment", "", 1).split("|") if part.strip()]
@@ -293,6 +443,11 @@ async def _create_payment_via_bot(message: Message):
 
 
 # ==================== SESSION MESSAGE INTERCEPTORS ====================
+
+@router.message(lambda msg: msg.from_user and msg.from_user.id in PAYMENT_WIZARD_SESSIONS and not should_cancel_creation_session(msg.text or ""))
+async def process_payment_wizard_session(message: Message):
+    await _handle_payment_wizard_text(message)
+
 
 @router.message(lambda msg: msg.from_user and msg.from_user.id in CREATION_SESSIONS and not should_cancel_creation_session(msg.text or ""))
 async def process_creation_session(message: Message):
@@ -401,14 +556,217 @@ async def create_teacher_command(message: Message):
         await start_creation_wizard(message, role="teacher", label="Ustoz")
 
 
-@router.message(F.text.startswith("/add_payment"))
-async def add_payment_command(message: Message):
-    await _create_payment_via_bot(message)
-
-
-@router.message(F.text.in_({"💰 Yangi to'lov", "yangi to'lov"}))
+@router.message(lambda msg: is_payment_cmd(msg.text or ""))
 async def add_payment_button(message: Message):
     await _create_payment_via_bot(message)
+
+
+# ==================== PAYMENT WIZARD CALLBACKS ====================
+
+@router.callback_query(F.data == "pw_cancel")
+async def process_payment_cancel(call: CallbackQuery):
+    PAYMENT_WIZARD_SESSIONS.pop(call.from_user.id, None)
+    await call.message.edit_text("❌ To'lov qabul qilish bekor qilindi.")
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("pw_g_"))
+async def process_payment_group_choice(call: CallbackQuery):
+    user_id = call.from_user.id
+    group_id = int(call.data.replace("pw_g_", ""))
+    group = await get_group_by_id(group_id)
+    if not group:
+        await call.answer("Guruh topilmadi.")
+        return
+
+    session = PAYMENT_WIZARD_SESSIONS.get(user_id, {})
+    session["group_id"] = group_id
+    session["group_name"] = group["name"]
+    session["monthly_fee"] = group["monthly_fee"]
+    session["step"] = "choose_student"
+    PAYMENT_WIZARD_SESSIONS[user_id] = session
+
+    students = await get_group_students(group_id)
+    if not students:
+        students = await get_users_by_role("student")
+
+    buttons = []
+    if students:
+        for s in students[:10]:
+            phone_str = f" ({s['phone']})" if s.get("phone") else ""
+            buttons.append([
+                InlineKeyboardButton(text=f"👤 {s['full_name']}{phone_str}", callback_data=f"pw_s_{s['id']}")
+            ])
+
+    buttons.append([
+        InlineKeyboardButton(text="✍️ O'quvchi ismini yozib kiritish", callback_data="pw_s_manual")
+    ])
+    buttons.append([
+        InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pw_cancel")
+    ])
+
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await call.message.edit_text(
+        f"👤 <b>Yangi to'lov qabul qilish</b> (2/4 bosqich):\n\n"
+        f"📚 <b>Tanlangan guruh:</b> {group['name']}\n\n"
+        f"O'quvchini tanlang yoki qo'lda kiriting:",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "pw_s_manual")
+async def process_payment_student_manual(call: CallbackQuery):
+    user_id = call.from_user.id
+    session = PAYMENT_WIZARD_SESSIONS.get(user_id)
+    if not session:
+        await call.answer("Sessiya topilmadi. Qayta boshlang.")
+        return
+
+    session["step"] = "input_student_manual"
+    await call.message.edit_text(
+        f"✍️ <b>O'quvchi ma'lumotini kiriting:</b>\n\n"
+        f"O'quvchining <b>Ism va familiyasi</b>ni yozib yuboring:\n"
+        f"<i>(Masalan: Jasur Olimov)</i>\n\n"
+        "Bekor qilish uchun: <code>cancel</code>",
+        parse_mode="HTML"
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("pw_s_"))
+async def process_payment_student_choice(call: CallbackQuery):
+    user_id = call.from_user.id
+    student_id = int(call.data.replace("pw_s_", ""))
+    student = await get_user_by_id(student_id)
+    session = PAYMENT_WIZARD_SESSIONS.get(user_id)
+    if not session:
+        await call.answer("Sessiya topilmadi.")
+        return
+
+    student_name = student["full_name"] if student else f"O'quvchi #{student_id}"
+    session["student_id"] = student_id
+    session["student_name"] = student_name
+    session["step"] = "choose_amount"
+
+    monthly_fee = float(session.get("monthly_fee", 400000))
+    half_fee = monthly_fee / 2.0
+
+    buttons = [
+        [InlineKeyboardButton(text=f"💵 {monthly_fee:,.0f} so'm (To'liq oy)", callback_data=f"pw_amt_{int(monthly_fee)}")],
+        [InlineKeyboardButton(text=f"💵 {half_fee:,.0f} so'm (Yarim oy)", callback_data=f"pw_amt_{int(half_fee)}")],
+        [InlineKeyboardButton(text="✍️ Boshqa summa kiritish", callback_data="pw_amt_manual")],
+        [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pw_cancel")],
+    ]
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+
+    await call.message.edit_text(
+        f"💵 <b>Yangi to'lov qabul qilish</b> (3/4 bosqich):\n\n"
+        f"👤 <b>O'quvchi:</b> {student_name}\n"
+        f"📚 <b>Guruh:</b> {session['group_name']}\n\n"
+        f"To'lov summasini tanlang yoki o'zingiz yozing:",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "pw_amt_manual")
+async def process_payment_amount_manual(call: CallbackQuery):
+    user_id = call.from_user.id
+    session = PAYMENT_WIZARD_SESSIONS.get(user_id)
+    if not session:
+        await call.answer("Sessiya topilmadi.")
+        return
+
+    session["step"] = "input_amount_manual"
+    await call.message.edit_text(
+        f"✍️ <b>To'lov summasini kiriting:</b>\n\n"
+        f"Kerakli summani faqat raqam bilan yozing (masalan: <code>350000</code>):\n\n"
+        f"Bekor qilish uchun: <code>cancel</code>",
+        parse_mode="HTML"
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("pw_amt_"))
+async def process_payment_amount_choice(call: CallbackQuery):
+    user_id = call.from_user.id
+    amount = float(call.data.replace("pw_amt_", ""))
+    session = PAYMENT_WIZARD_SESSIONS.get(user_id)
+    if not session:
+        await call.answer("Sessiya topilmadi.")
+        return
+
+    session["amount"] = amount
+    session["step"] = "choose_type"
+
+    buttons = [
+        [InlineKeyboardButton(text="💵 Naqd pul", callback_data="pw_type_naqd")],
+        [InlineKeyboardButton(text="💳 Plastik karta", callback_data="pw_type_karta")],
+        [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pw_cancel")],
+    ]
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+
+    await call.message.edit_text(
+        f"💳 <b>Yangi to'lov qabul qilish</b> (4/4 bosqich):\n\n"
+        f"👤 <b>O'quvchi:</b> {session['student_name']}\n"
+        f"📚 <b>Guruh:</b> {session['group_name']}\n"
+        f"💵 <b>Summa:</b> {amount:,.0f} so'm\n\n"
+        f"To'lov qaysi usulda amalga oshirilmoqda?",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("pw_type_"))
+async def process_payment_final(call: CallbackQuery):
+    user_id = call.from_user.id
+    payment_type = call.data.replace("pw_type_", "")
+    session = PAYMENT_WIZARD_SESSIONS.pop(user_id, None)
+    if not session:
+        await call.answer("Sessiya eskirgan.")
+        return
+
+    student_id = session.get("student_id", 1)
+    group_id = session.get("group_id", 1)
+    amount = session.get("amount", 0.0)
+    student_name = session.get("student_name", "O'quvchi")
+    group_name = session.get("group_name", "Guruh")
+    from datetime import datetime
+    month_for = datetime.now().strftime("%Y-%m")
+
+    await add_payment(
+        student_id=student_id,
+        group_id=group_id,
+        amount=amount,
+        payment_type=payment_type,
+        month_for=month_for,
+        note="Bot orqali qabul qilindi",
+    )
+
+    await notify_payment_receipt(
+        student_id=student_id,
+        group_id=group_id,
+        amount=amount,
+        payment_type=payment_type,
+        month_for=month_for,
+        note="Bot orqali qabul qilindi",
+    )
+
+    await call.message.edit_text(
+        f"✅ <b>To'lov muvaffaqiyatli qabul qilindi!</b>\n\n"
+        f"👤 <b>O'quvchi:</b> {student_name}\n"
+        f"📚 <b>Guruh:</b> {group_name}\n"
+        f"💵 <b>Summa:</b> {amount:,.0f} so'm\n"
+        f"💳 <b>To'lov usuli:</b> {payment_type.capitalize()}\n"
+        f"📅 <b>Oy uchun:</b> {month_for}\n\n"
+        f"🧾 Kvitansiya o'quvchi va ota-onaga avtomatik jo'natildi!",
+        parse_mode="HTML"
+    )
+    await call.answer("To'lov saqlandi!")
 
 
 # ==================== FEEDBACKS & BROADCAST PROCESSING ====================

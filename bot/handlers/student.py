@@ -23,6 +23,8 @@ from bot.handlers.admin import (
     handle_broadcast_message,
     is_admin_creation_cmd,
     is_teacher_creation_cmd,
+    start_payment_wizard,
+    is_payment_cmd,
 )
 from bot.keyboards.default import get_main_keyboard, get_phone_keyboard
 from bot.keyboards.inline import (
@@ -656,6 +658,10 @@ async def process_text(message: Message):
 
     if is_teacher_creation_cmd(text):
         await start_creation_wizard(message, role="teacher", label="Ustoz")
+        return
+
+    if is_payment_cmd(text):
+        await start_payment_wizard(message)
         return
 
     user = await get_user(user_id)
