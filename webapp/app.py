@@ -567,6 +567,30 @@ async def delete_admin_endpoint(admin_id: int = Form(...)):
     return {"status": "success", "message": "Admin muvaffaqiyatli o'chirildi!"}
 
 
+@app.post("/admin/delete-group")
+async def delete_group_endpoint(group_id: int = Form(...)):
+    async with get_db() as db:
+        await db.execute("DELETE FROM attendance WHERE group_id = ?", (group_id,))
+        await db.execute("DELETE FROM payments WHERE group_id = ?", (group_id,))
+        await db.execute("DELETE FROM enrollments WHERE group_id = ?", (group_id,))
+        await db.execute("DELETE FROM groups WHERE id = ?", (group_id,))
+        await db.commit()
+    return {"status": "success", "message": "Guruh muvaffaqiyatli o'chirildi!"}
+
+
+@app.post("/admin/delete-user")
+async def delete_user_endpoint(user_id: int = Form(...)):
+    async with get_db() as db:
+        await db.execute("DELETE FROM attendance WHERE student_id = ?", (user_id,))
+        await db.execute("DELETE FROM payments WHERE student_id = ?", (user_id,))
+        await db.execute("DELETE FROM enrollments WHERE student_id = ?", (user_id,))
+        await db.execute("DELETE FROM student_parents WHERE student_id = ? OR parent_id = ?", (user_id, user_id))
+        await db.execute("DELETE FROM feedbacks WHERE user_id = ? OR student_id = ?", (user_id, user_id))
+        await db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        await db.commit()
+    return {"status": "success", "message": "Foydalanuvchi tizimdan o'chirildi!"}
+
+
 @app.post("/admin/create-user")
 async def create_user(
     full_name: str = Form(...),

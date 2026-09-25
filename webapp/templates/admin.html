@@ -189,6 +189,7 @@
                                 <th>Usuli</th>
                                 <th>Oy</th>
                                 <th>Sana</th>
+                                <th>Chek</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -200,10 +201,15 @@
                                 <td><span class="badge badge-primary">{{ p.payment_type.capitalize() }}</span></td>
                                 <td>{{ p.month_for }}</td>
                                 <td class="text-slate-400 text-xs">{{ p.created_at[:16] }}</td>
+                                <td>
+                                    <button type="button" onclick="showReceiptModal('{{ p.student_name }}', '{{ p.group_name }}', '{{ p.amount }}', '{{ p.payment_type }}', '{{ p.month_for }}', '{{ p.created_at[:16] }}', '{{ p.id }}')" class="px-2 py-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg transition">
+                                        🧾 Chek
+                                    </button>
+                                </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="text-center text-slate-400 py-4">To'lovlar tarixi bo'sh.</td>
+                                <td colspan="7" class="text-center text-slate-400 py-4">To'lovlar tarixi bo'sh.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -261,11 +267,15 @@
                     <form id="enrollForm" class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">O'quvchini tanlang</label>
+                            {% if students %}
                             <select name="student_id" required class="modern-select">
                                 {% for s in students %}
                                 <option value="{{ s.id }}">{{ s.full_name }} ({{ s.phone or 'Tel yo`q' }})</option>
                                 {% endfor %}
                             </select>
+                            {% else %}
+                            <p class="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">ℹ️ Hozircha o'quvchilar yo'q. <a href="javascript:void(0)" onclick="openTab('users')" class="font-bold underline text-indigo-700">Foydalanuvchilar</a> bo'limidan qo'shishingiz yoki <a href="javascript:void(0)" onclick="openTab('payments')" class="font-bold underline text-emerald-700">to'lov qabul qilganda</a> avtomatik yaratilishi mumkin.</p>
+                            {% endif %}
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Guruhni tanlang</label>
@@ -276,7 +286,7 @@
                             </select>
                         </div>
                         <p class="text-xs text-slate-400">O'quvchi biriktirilishi bilan uning dars jadvalida ushbu guruh paydo bo'ladi.</p>
-                        <button type="submit" class="btn-primary w-full">🔗 Guruhga Biriktirish</button>
+                        <button type="submit" class="btn-primary w-full" {% if not students %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>🔗 Guruhga Biriktirish</button>
                     </form>
                 </div>
             </div>
@@ -295,6 +305,7 @@
                                 <th>Xona</th>
                                 <th>O'quvchilar</th>
                                 <th>Oylik narx</th>
+                                <th>Amallar</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -307,10 +318,15 @@
                                 <td>{{ g.room or "—" }}</td>
                                 <td><span class="badge badge-primary">{{ g.student_count }} ta</span></td>
                                 <td class="font-semibold">{{ "%.0f"|format(g.monthly_fee) }} so'm</td>
+                                <td>
+                                    <button type="button" onclick="deleteGroup({{ g.id }})" class="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-1 bg-rose-50 rounded-lg hover:bg-rose-100 transition">
+                                        🗑 O'chirish
+                                    </button>
+                                </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="7" class="text-center text-slate-400 py-4">Guruhlar hali ochilmagan.</td>
+                                <td colspan="8" class="text-center text-slate-400 py-4">Guruhlar hali ochilmagan.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -521,11 +537,15 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">O'quvchini tanlang</label>
+                        {% if students %}
                         <select name="student_id" required class="modern-select">
                             {% for s in students %}
                             <option value="{{ s.id }}">{{ s.full_name }}</option>
                             {% endfor %}
                         </select>
+                        {% else %}
+                        <p class="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">ℹ️ Hozircha tizimda o'quvchilar yo'q. Avval "Guruhlar" yoki "Foydalanuvchilar" bo'limidan o'quvchi qo'shing.</p>
+                        {% endif %}
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
@@ -543,7 +563,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary w-full py-2.5 mt-2">💾 Davomatni Saqlash</button>
+                    <button type="submit" class="btn-primary w-full py-2.5 mt-2" {% if not students %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>💾 Davomatni Saqlash</button>
                 </form>
             </div>
         </div>
@@ -619,7 +639,10 @@
                                 <td><span class="badge badge-warning">Ustoz</span></td>
                                 <td>{{ u.phone or "—" }}</td>
                                 <td>{{ u.telegram_id or "—" }}</td>
-                                <td><a href="/teacher/{{ u.id }}" class="text-indigo-600 hover:underline text-xs">Veb-panel</a></td>
+                                <td class="flex items-center gap-2">
+                                    <a href="/teacher/{{ u.id }}" class="text-indigo-600 hover:underline text-xs font-semibold">Veb-panel</a>
+                                    <button type="button" onclick="deleteUser({{ u.id }})" class="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-0.5 bg-rose-50 rounded hover:bg-rose-100 transition">🗑 O'chirish</button>
+                                </td>
                             </tr>
                             {% endfor %}
                             {% for u in students %}
@@ -628,7 +651,10 @@
                                 <td><span class="badge badge-primary">O'quvchi</span></td>
                                 <td>{{ u.phone or "—" }}</td>
                                 <td>{{ u.telegram_id or "—" }}</td>
-                                <td><a href="/parent/{{ u.id }}" class="text-indigo-600 hover:underline text-xs">Kabinet</a></td>
+                                <td class="flex items-center gap-2">
+                                    <a href="/parent/{{ u.id }}" class="text-indigo-600 hover:underline text-xs font-semibold">Kabinet</a>
+                                    <button type="button" onclick="deleteUser({{ u.id }})" class="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-0.5 bg-rose-50 rounded hover:bg-rose-100 transition">🗑 O'chirish</button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1228,6 +1254,44 @@
                 const data = await res.json();
                 if (res.ok && data.status === 'success') {
                     showToast(data.message || "Admin o'chirildi!");
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(data.message || "Xatolik!", true);
+                }
+            } catch (e) {
+                showToast("Server bilan bog'lanishda xatolik!", true);
+            }
+        }
+
+        // Delete Group
+        async function deleteGroup(groupId) {
+            if (!confirm("Haqiqatan ham ushbu guruhni o'chirmoqchimisiz? Guruhga tegishli barcha darslar o'chiriladi.")) return;
+            const formData = new FormData();
+            formData.append('group_id', groupId);
+            try {
+                const res = await fetch('/admin/delete-group', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    showToast(data.message || "Guruh o'chirildi!");
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(data.message || "Xatolik!", true);
+                }
+            } catch (e) {
+                showToast("Server bilan bog'lanishda xatolik!", true);
+            }
+        }
+
+        // Delete User (Student, Teacher, Parent)
+        async function deleteUser(userId) {
+            if (!confirm("Haqiqatan ham ushbu foydalanuvchini tizimdan butunlay o'chirmoqchimisiz?")) return;
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            try {
+                const res = await fetch('/admin/delete-user', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    showToast(data.message || "Foydalanuvchi o'chirildi!");
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
                     showToast(data.message || "Xatolik!", true);
