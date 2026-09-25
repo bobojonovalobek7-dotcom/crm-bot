@@ -59,11 +59,16 @@ async def get_all_users():
 
 # ==================== GROUPS ====================
 
-async def add_group(name: str, subject: str, monthly_fee: float, teacher_id: int, schedule: str = "", room: str = ""):
+async def add_group(name: str, subject: str, monthly_fee: float, teacher_id: int | None = None, schedule: str = "", room: str = ""):
     async with get_db() as db:
+        valid_teacher_id = None
+        if teacher_id and teacher_id > 0:
+            async with db.execute("SELECT id FROM users WHERE id = ?", (teacher_id,)) as cur:
+                if await cur.fetchone():
+                    valid_teacher_id = teacher_id
         cursor = await db.execute(
             "INSERT INTO groups (name, subject, monthly_fee, teacher_id, schedule, room) VALUES (?, ?, ?, ?, ?, ?)",
-            (name, subject, monthly_fee, teacher_id, schedule, room),
+            (name, subject, monthly_fee, valid_teacher_id, schedule, room),
         )
         await db.commit()
         return cursor.lastrowid
@@ -279,6 +284,12 @@ async def get_stats_summary():
 
 async def link_parent_student(parent_id: int, student_id: int, relation_type: str = "ota"):
     async with get_db() as db:
+        async with db.execute("SELECT id FROM users WHERE id = ?", (parent_id,)) as cur:
+            if not await cur.fetchone():
+                await db.execute("INSERT OR IGNORE INTO users (id, full_name, role) VALUES (?, 'Ota-ona', 'parent')", (parent_id,))
+        async with db.execute("SELECT id FROM users WHERE id = ?", (student_id,)) as cur:
+            if not await cur.fetchone():
+                await db.execute("INSERT OR IGNORE INTO users (id, full_name, role) VALUES (?, 'O''quvchi', 'student')", (student_id,))
         await db.execute(
             "INSERT INTO student_parents (parent_id, student_id, relation_type) VALUES (?, ?, ?) "
             "ON CONFLICT(student_id, parent_id) DO UPDATE SET relation_type = excluded.relation_type",
@@ -331,7 +342,7 @@ async def get_all_parent_student_links():
             FROM student_parents sp
             JOIN users p ON p.id = sp.parent_id
             JOIN users s ON s.id = sp.student_id
-            ORDER BY s.full_name, p.full_name
+            ORDER BY p.full_name, s.full_name
         """) as cursor:
             return await cursor.fetchall()
 
@@ -340,6 +351,14 @@ async def get_all_parent_student_links():
 
 async def create_feedback(user_id: int, message: str, feedback_type: str = "taklif", student_id: int | None = None):
     async with get_db() as db:
+        if user_id:
+            async with db.execute("SELECT id FROM users WHERE id = ?", (user_id,)) as cur:
+                if not await cur.fetchone():
+                    await db.execute("INSERT OR IGNORE INTO users (id, full_name, role) VALUES (?, 'Foydalanuvchi', 'parent')", (user_id,))
+        if student_id:
+            async with db.execute("SELECT id FROM users WHERE id = ?", (student_id,)) as cur:
+                if not await cur.fetchone():
+                    student_id = None
         cursor = await db.execute(
             "INSERT INTO feedbacks (user_id, student_id, feedback_type, message, status) VALUES (?, ?, ?, ?, 'yangi')",
             (user_id, student_id, feedback_type, message),
@@ -387,13 +406,18 @@ async def get_feedback_by_id(feedback_id: int):
             return await cursor.fetchone()
 
 
-async def reply_to_feedback(feedback_id: int, reply_text: str, admin_id: int):
+async def reply_to_feedback(feedback_id: int, reply_text: str, admin_id: int | None = None):
     async with get_db() as db:
+        valid_admin_id = None
+        if admin_id and admin_id > 0:
+            async with db.execute("SELECT id FROM users WHERE id = ?", (admin_id,)) as cur:
+                if await cur.fetchone():
+                    valid_admin_id = admin_id
         await db.execute("""
             UPDATE feedbacks
             SET admin_reply = ?, replied_by = ?, status = 'javob_berildi', replied_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        """, (reply_text, admin_id, feedback_id))
+        """, (reply_text, valid_admin_id, feedback_id))
         await db.commit()
 
 

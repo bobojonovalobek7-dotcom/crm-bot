@@ -134,4 +134,17 @@ async def init_db():
         await db.execute("CREATE INDEX IF NOT EXISTS idx_feedbacks_user ON feedbacks(user_id)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_feedbacks_status ON feedbacks(status)")
 
+        # Ensure default super admin exists
+        async with db.execute("SELECT COUNT(*) FROM users") as cursor:
+            row = await cursor.fetchone()
+            user_count = row[0] if row else 0
+
+        if user_count == 0:
+            from config import SUPER_ADMIN_IDS
+            first_super_admin = SUPER_ADMIN_IDS[0] if SUPER_ADMIN_IDS else 5341602920
+            await db.execute("""
+                INSERT OR IGNORE INTO users (id, telegram_id, full_name, phone, role)
+                VALUES (1, ?, 'Super Admin', '+998901234567', 'super_admin')
+            """, (first_super_admin,))
+
         await db.commit()

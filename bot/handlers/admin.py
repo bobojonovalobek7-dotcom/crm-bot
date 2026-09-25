@@ -83,39 +83,58 @@ def should_cancel_creation_session(value: str) -> bool:
 
 
 async def _is_real_telegram_user(telegram_id: int, bot: Bot | None = None) -> bool:
-    close_needed = False
-    if bot is None:
-        bot = Bot(token=BOT_TOKEN)
-        close_needed = True
-
-    try:
-        await bot.get_chat(chat_id=telegram_id)
-        return True
-    except Exception:
-        return False
-    finally:
-        if close_needed:
-            await bot.close()
+    # Always allow valid structural telegram IDs. Telegram get_chat() returns 'Chat not found'
+    # if the person hasn't started the bot yet, which would prevent admins from adding new teachers/admins.
+    return True
 
 
 def _is_admin_user(user_id: int | None) -> bool:
     return bool(is_super_admin(user_id) or is_admin(user_id))
 
 
-async def start_creation_wizard(message: Message, role: str, label: str):
-    if not _is_admin_user(message.from_user.id):
+def is_admin_creation_cmd(text: str) -> bool:
+    if not text:
+        return False
+    norm = text.strip().lower()
+    if any(norm.startswith(cmd) for cmd in ["/create_admin", "/add_admin", "/addadmin", "/new_admin"]):
+        return True
+    if norm in {"👤 yangi admin", "yangi admin"}:
+        return True
+    if "admin" in norm and any(k in norm for k in ["qo'sh", "qosh", "yarat", "yangi"]):
+        return True
+    return False
+
+
+def is_teacher_creation_cmd(text: str) -> bool:
+    if not text:
+        return False
+    norm = text.strip().lower()
+    if any(norm.startswith(cmd) for cmd in ["/create_teacher", "/add_teacher", "/addteacher", "/new_teacher"]):
+        return True
+    if norm in {"👨‍🏫 yangi ustoz", "yangi ustoz"}:
+        return True
+    if any(t in norm for t in ["ustoz", "o'qituvchi", "oqituvchi", "teacher"]) and any(k in norm for k in ["qo'sh", "qosh", "yarat", "yangi"]):
+        return True
+    return False
+
+
+async def start_creation_wizard(message: Message, role: str, label: str, target_user_id: int | None = None):
+    caller_id = target_user_id or (message.from_user.id if message.from_user else None)
+    if not _is_admin_user(caller_id):
         await message.answer("❌ Bu buyruq faqat admin va super admin uchun.")
         return
 
-    CREATION_SESSIONS[message.from_user.id] = {
+    CREATION_SESSIONS[caller_id] = {
         "role": role,
         "label": label,
         "step": "full_name",
     }
     await message.answer(
-        f"🧩 {label} yaratish uchun 1/3 bosqich:\n\n"
-        "Ism va familiyangizni kiriting.\n\n"
-        "Bekor qilish uchun: cancel"
+        f"🧩 <b>Yangi {label} qo'shish</b> (1/3 bosqich):\n\n"
+        f"Iltimos, {label.lower()}ning <b>ism va familiyasi</b>ni kiriting.\n"
+        f"<i>(Masalan: Sardor Rahimov)</i>\n\n"
+        "Bekor qilish uchun: <code>cancel</code>",
+        parse_mode="HTML"
     )
 
 
@@ -131,7 +150,7 @@ async def _handle_creation_step(message: Message):
     text = (message.text or "").strip()
 
     normalized = text.strip().lower()
-    if normalized in {"cancel", "bekor qilish", "otmen", "cancelled"}:
+    if normalized in {"cancel", "bekor", "bekor qilish", "otmen", "cancelled", "/cancel"}:
         CREATION_SESSIONS.pop(user_id, None)
         await message.answer("❌ Yaratish bekor qilindi.")
         return
@@ -142,7 +161,12 @@ async def _handle_creation_step(message: Message):
             return
         session["full_name"] = text
         session["step"] = "phone"
-        await message.answer("2/3 bosqich: Telefon raqamingizni kiriting.\n\nBekor qilish uchun: cancel")
+        await message.answer(
+            f"📞 <b>{label} qo'shish</b> (2/3 bosqich):\n\n"
+            "Telefon raqamini kiriting <i>(masalan: +998901234567)</i>:\n\n"
+            "Bekor qilish uchun: <code>cancel</code>",
+            parse_mode="HTML"
+        )
         return
 
     if step == "phone":
@@ -151,7 +175,13 @@ async def _handle_creation_step(message: Message):
             return
         session["phone"] = text
         session["step"] = "telegram_id"
-        await message.answer("3/3 bosqich: Telegram ID ni kiriting.\n\nBekor qilish uchun: cancel")
+        await message.answer(
+            f"🆔 <b>{label} qo'shish</b> (3/3 bosqich):\n\n"
+            "Foydalanuvchining <b>Telegram ID</b> raqamini kiriting:\n"
+            "<i>(Telegram ID raqamini @userinfobot orqali bilish mumkin)</i>\n\n"
+            "Bekor qilish uchun: <code>cancel</code>",
+            parse_mode="HTML"
+        )
         return
 
     if step == "telegram_id":
@@ -160,20 +190,23 @@ async def _handle_creation_step(message: Message):
             await message.answer(f"❗ {error}")
             return
 
-        existing = await get_user(telegram_id)
-        if existing:
-            await message.answer("❗ Bu Telegram ID allaqachon ro'yxatdan o'tgan.")
-            return
-
-        if not await _is_real_telegram_user(telegram_id, message.bot):
-            await message.answer("❗ Bu Telegram ID haqiqiy foydalanuvchi hisobiga tegishli emas. Qayta kiriting.")
-            return
-
         full_name = session.get("full_name", "")
         phone = session.get("phone", "")
         await add_user(telegram_id=telegram_id, full_name=full_name, phone=phone, role=role)
-        await message.answer(f"✅ {label} muvaffaqiyatli yaratildi: {full_name}")
         CREATION_SESSIONS.pop(user_id, None)
+
+        from bot.keyboards.default import get_main_keyboard
+        caller_user = await get_user(user_id)
+        caller_role = caller_user["role"] if caller_user else "admin"
+        await message.answer(
+            f"✅ <b>{label} muvaffaqiyatli qo'shildi!</b>\n\n"
+            f"👤 <b>Ism:</b> {full_name}\n"
+            f"📞 <b>Telefon:</b> {phone}\n"
+            f"🆔 <b>Telegram ID:</b> {telegram_id}\n"
+            f"🏷 <b>Roli:</b> {role.upper()}",
+            reply_markup=get_main_keyboard(caller_role),
+            parse_mode="HTML"
+        )
 
 
 async def _create_user_via_bot(message: Message, role: str, command_name: str):
@@ -198,15 +231,6 @@ async def _create_user_via_bot(message: Message, role: str, command_name: str):
     ok, telegram_id, error = validate_telegram_id(parts[2])
     if not ok:
         await message.answer(f"❗ {error}")
-        return
-
-    existing = await get_user(telegram_id)
-    if existing:
-        await message.answer("❗ Bu Telegram ID allaqachon ro'yxatdan o'tgan.")
-        return
-
-    if not await _is_real_telegram_user(telegram_id, message.bot):
-        await message.answer("❗ Bu Telegram ID haqiqiy foydalanuvchi hisobiga tegishli emas. Qayta kiriting.")
         return
 
     await add_user(telegram_id=telegram_id, full_name=full_name, phone=phone, role=role)
@@ -267,6 +291,25 @@ async def _create_payment_via_bot(message: Message):
 
     await message.answer("✅ To'lov saqlandi va o'quvchi hamda unga biriktirilgan barcha ota-onalarga kvitansiya jo'natildi!")
 
+
+# ==================== SESSION MESSAGE INTERCEPTORS ====================
+
+@router.message(lambda msg: msg.from_user and msg.from_user.id in CREATION_SESSIONS and not should_cancel_creation_session(msg.text or ""))
+async def process_creation_session(message: Message):
+    await _handle_creation_step(message)
+
+
+@router.message(lambda msg: msg.from_user and msg.from_user.id in ADMIN_REPLY_SESSIONS)
+async def process_admin_reply_session(message: Message):
+    await handle_admin_reply_step(message)
+
+
+@router.message(lambda msg: msg.from_user and msg.from_user.id in BROADCAST_SESSIONS)
+async def process_broadcast_session(message: Message):
+    await handle_broadcast_message(message)
+
+
+# ==================== COMMAND & BUTTON HANDLERS ====================
 
 @router.message(F.text == "/admin")
 async def admin_command(message: Message):
@@ -340,14 +383,22 @@ async def process_broadcast_choice(call: CallbackQuery):
     await call.answer()
 
 
-@router.message(F.text.startswith("/create_admin"))
+@router.message(lambda msg: is_admin_creation_cmd(msg.text or ""))
 async def create_admin_command(message: Message):
-    await _create_user_via_bot(message, role="admin", command_name="create_admin")
+    text = (message.text or "").strip()
+    if "|" in text:
+        await _create_user_via_bot(message, role="admin", command_name="create_admin")
+    else:
+        await start_creation_wizard(message, role="admin", label="Admin")
 
 
-@router.message(F.text.startswith("/create_teacher"))
+@router.message(lambda msg: is_teacher_creation_cmd(msg.text or ""))
 async def create_teacher_command(message: Message):
-    await _create_user_via_bot(message, role="teacher", command_name="create_teacher")
+    text = (message.text or "").strip()
+    if "|" in text:
+        await _create_user_via_bot(message, role="teacher", command_name="create_teacher")
+    else:
+        await start_creation_wizard(message, role="teacher", label="Ustoz")
 
 
 @router.message(F.text.startswith("/add_payment"))
@@ -575,7 +626,7 @@ async def callback_add_new_admin(call: CallbackQuery):
         return
 
     await call.answer()
-    await start_creation_wizard(call.message, role="admin", label="Admin")
+    await start_creation_wizard(call.message, role="admin", label="Admin", target_user_id=call.from_user.id)
 
 
 @router.message(F.text.startswith("/delete_admin") | F.text.startswith("/remove_admin"))

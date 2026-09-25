@@ -5,7 +5,7 @@ from io import BytesIO
 
 import os
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import Response, JSONResponse, FileResponse
+from fastapi.responses import Response, JSONResponse, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import httpx
@@ -204,7 +204,7 @@ async def login_page(request: Request):
 @app.get("/logout")
 async def logout():
     response = RedirectResponse(url="/login", status_code=302)
-    response.delete_cookie(SESSION_COOKIE_NAME)
+    response.delete_cookie(SESSION_COOKIE_NAME, samesite="none", secure=True)
     return response
 
 
@@ -254,7 +254,8 @@ async def api_auth_telegram(payload: dict):
         value=session_token,
         max_age=SESSION_MAX_AGE,
         httponly=True,
-        samesite="lax",
+        samesite="none",
+        secure=True,
     )
     return response
 
@@ -300,7 +301,8 @@ async def api_auth_login(payload: dict):
         value=session_token,
         max_age=SESSION_MAX_AGE,
         httponly=True,
-        samesite="lax",
+        samesite="none",
+        secure=True,
     )
     return response
 
@@ -446,6 +448,8 @@ async def admin_page(request: Request):
 @app.get("/teacher/{teacher_id}")
 async def teacher_page(request: Request, teacher_id: int):
     teacher = await get_user_by_id(teacher_id)
+    if not teacher:
+        teacher = {"id": teacher_id, "full_name": "Hurmatli Ustoz", "phone": "", "role": "teacher"}
     groups = await get_teacher_groups(teacher_id)
 
     async with get_db() as db:
@@ -474,21 +478,21 @@ async def teacher_page(request: Request, teacher_id: int):
 @app.get("/parent/{student_id}")
 async def parent_page(request: Request, student_id: int, child_id: int | None = None):
     user = await get_user_by_id(student_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+    user_dict = dict(user) if user else {"id": student_id, "full_name": "Hurmatli Ota-ona / O'quvchi", "phone": "", "role": "parent"}
 
     children = []
     parent_user = None
-    if user["role"] == "parent":
-        parent_user = user
-        children = await get_parent_students(user["id"])
+    if user_dict.get("role") == "parent":
+        parent_user = user_dict
+        children = await get_parent_students(user_dict["id"])
         if children:
             selected_id = child_id if (child_id and any(c["student_id"] == child_id for c in children)) else children[0]["student_id"]
             active_student = await get_user_by_id(selected_id)
+            active_student = dict(active_student) if active_student else user_dict
         else:
-            active_student = user
+            active_student = user_dict
     else:
-        active_student = user
+        active_student = user_dict
 
     target_id = active_student["id"] if active_student else student_id
     records = await get_student_payments(target_id)
@@ -515,7 +519,7 @@ async def parent_page(request: Request, student_id: int, child_id: int | None = 
 async def student_page(request: Request, student_id: int):
     user = await get_user_by_id(student_id)
     if not user:
-        raise HTTPException(status_code=404, detail="O'quvchi topilmadi")
+        user = {"id": student_id, "full_name": "Hurmatli O'quvchi", "phone": "", "role": "student"}
 
     groups = await get_student_groups(student_id)
     records = await get_student_payments(student_id)

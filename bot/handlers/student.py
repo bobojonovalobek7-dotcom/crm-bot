@@ -21,6 +21,8 @@ from bot.handlers.admin import (
     start_creation_wizard,
     handle_admin_reply_step,
     handle_broadcast_message,
+    is_admin_creation_cmd,
+    is_teacher_creation_cmd,
 )
 from bot.keyboards.default import get_main_keyboard, get_phone_keyboard
 from bot.keyboards.inline import (
@@ -83,7 +85,12 @@ def build_student_reply(text: str) -> str:
     if "crm" in normalized or "web" in normalized or "crm web app" in normalized:
         return f"CRM paneli: {get_webapp_url('/admin')}"
 
-    if "yangi admin" in normalized:
+    if (
+        "yangi admin" in normalized
+        or "/create_admin" in normalized
+        or "/add_admin" in normalized
+        or ("admin" in normalized and any(k in normalized for k in ["qo'sh", "qosh", "yarat", "yangi"]))
+    ):
         return (
             "Yangi admin yaratish uchun quyidagi ketma-ketlik bo'yicha ma'lumot kiriting:\n\n"
             "1) Ism va familiya\n"
@@ -91,7 +98,14 @@ def build_student_reply(text: str) -> str:
             "3) Telegram ID"
         )
 
-    if "yangi ustoz" in normalized or "yangi oqituvchi" in normalized or "teacher" in normalized:
+    if (
+        "yangi ustoz" in normalized
+        or "/create_teacher" in normalized
+        or "/add_teacher" in normalized
+        or "yangi oqituvchi" in normalized
+        or "teacher" in normalized
+        or (any(t in normalized for t in ["ustoz", "o'qituvchi", "oqituvchi"]) and any(k in normalized for k in ["qo'sh", "qosh", "yarat", "yangi"]))
+    ):
         return (
             "Yangi ustoz yaratish uchun quyidagi ketma-ketlik bo'yicha ma'lumot kiriting:\n\n"
             "1) Ism va familiya\n"
@@ -636,11 +650,11 @@ async def process_text(message: Message):
         await _handle_creation_step(message)
         return
 
-    if normalized == "yangi admin":
+    if is_admin_creation_cmd(text):
         await start_creation_wizard(message, role="admin", label="Admin")
         return
 
-    if normalized in {"yangi ustoz", "yangi oqituvchi", "yangi teacher"}:
+    if is_teacher_creation_cmd(text):
         await start_creation_wizard(message, role="teacher", label="Ustoz")
         return
 
