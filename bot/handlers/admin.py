@@ -57,33 +57,30 @@ def validate_telegram_id(raw_value: str) -> tuple[bool, int | None, str | None]:
 
 
 def should_cancel_creation_session(value: str) -> bool:
-    normalized = (value or "").strip().lower()
-    return normalized in {
-        "crm web app",
-        "web app",
-        "crm",
-        "yangi admin",
-        "yangi ustoz",
-        "yangi oqituvchi",
-        "yangi teacher",
-        "hisobotlar",
-        "📈 hisobotlar",
-        "murojaatlar",
-        "💬 murojaatlar",
-        "/feedbacks",
-        "/murojaatlar",
-        "adminlar",
-        "👥 adminlar",
-        "/admins",
-        "/adminlar",
-        "xabar yuborish",
-        "📣 xabar yuborish",
-        "qayta ishga tushirish",
-        "restart",
-        "/restart",
-        "/start",
-        "start",
+    if not value:
+        return False
+    stripped = value.strip()
+    if stripped.isdigit():
+        return False
+
+    norm = stripped.lower()
+    clean = "".join(ch for ch in norm if ch.isalnum() or ch.isspace() or ch in "'-/")
+    clean = " ".join(clean.split())
+
+    cancel_keywords = {
+        "cancel", "bekor", "bekor qilish", "otmen", "to'xtat", "chiqish", "/cancel",
+        "qayta ishga tushirish", "qayta", "restart", "/restart", "/start", "start",
+        "yangi admin", "yangi ustoz", "yangi oqituvchi", "yangi teacher", "yangi to'lov", "yangi tolov",
+        "to'lov", "tolov", "adminlar", "hisobotlar", "murojaatlar", "/feedbacks", "/murojaatlar",
+        "/admins", "/adminlar", "xabar yuborish", "crm web app", "web app", "crm", "kabinet",
     }
+    if clean in cancel_keywords or norm in cancel_keywords:
+        return True
+
+    if any(k in clean for k in ["qayta ishga tushirish", "restart", "yangi admin", "yangi ustoz", "yangi tolov", "yangi to'lov", "xabar yuborish"]):
+        return True
+
+    return False
 
 
 async def _is_real_telegram_user(telegram_id: int, bot: Bot | None = None) -> bool:
@@ -175,10 +172,9 @@ async def _handle_creation_step(message: Message):
     step = session["step"]
     text = (message.text or "").strip()
 
-    normalized = text.strip().lower()
-    if normalized in {"cancel", "bekor", "bekor qilish", "otmen", "cancelled", "/cancel"}:
+    if should_cancel_creation_session(text):
         CREATION_SESSIONS.pop(user_id, None)
-        await message.answer("❌ Yaratish bekor qilindi.")
+        await message.answer("❌ Jarayon bekor qilindi.")
         return
 
     if step == "full_name":
@@ -211,9 +207,22 @@ async def _handle_creation_step(message: Message):
         return
 
     if step == "telegram_id":
+        if not text.isdigit():
+            CREATION_SESSIONS.pop(user_id, None)
+            from bot.keyboards.default import get_main_keyboard
+            caller_user = await get_user(user_id)
+            caller_role = caller_user["role"] if caller_user else "admin"
+            await message.answer(
+                "⚠️ Jarayon bekor qilindi (Telegram ID kiritilmadi).\n"
+                "Qaytadan boshlash uchun kerakli tugmani bosing.",
+                reply_markup=get_main_keyboard(caller_role),
+                parse_mode="HTML"
+            )
+            return
+
         ok, telegram_id, error = validate_telegram_id(text)
         if not ok:
-            await message.answer(f"❗ {error}")
+            await message.answer(f"❗ {error}\n\nBekor qilish uchun: <code>cancel</code>", parse_mode="HTML")
             return
 
         full_name = session.get("full_name", "")

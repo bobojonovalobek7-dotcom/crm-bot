@@ -641,9 +641,11 @@ async def process_text(message: Message):
         )
         return
 
-    if normalized in {"qayta ishga tushirish", "/restart", "restart"}:
-        if user_id in CREATION_SESSIONS:
-            CREATION_SESSIONS.pop(user_id, None)
+    clean_text = "".join(ch for ch in normalized if ch.isalnum() or ch.isspace() or ch in "'-/")
+    clean_text = " ".join(clean_text.split())
+    if clean_text in {"qayta ishga tushirish", "restart", "/restart", "/start", "start"} or "qayta ishga tushirish" in clean_text:
+        CREATION_SESSIONS.pop(user_id, None)
+        PAYMENT_WIZARD_SESSIONS.pop(user_id, None)
         await cmd_start(message)
         return
 
