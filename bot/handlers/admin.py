@@ -590,16 +590,34 @@ async def process_payment_group_choice(call: CallbackQuery):
     if not students:
         students = await get_users_by_role("student")
 
+    if not students:
+        session["step"] = "input_student_manual"
+        PAYMENT_WIZARD_SESSIONS[user_id] = session
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pw_cancel")]
+        ])
+        await call.message.edit_text(
+            f"👤 <b>Yangi to'lov qabul qilish</b> (2/4 bosqich):\n\n"
+            f"📚 <b>Tanlangan guruh:</b> {group['name']}\n\n"
+            f"Ushbu guruhda hali o'quvchilar ro'yxati shakllanmagan.\n"
+            f"To'lov qabul qilinayotgan o'quvchining <b>Ism va familiyasi</b>ni yozib yuboring:\n"
+            f"<i>(Masalan: Jasur Olimov)</i>\n\n"
+            f"Bekor qilish uchun: <code>cancel</code>",
+            reply_markup=kb,
+            parse_mode="HTML"
+        )
+        await call.answer()
+        return
+
     buttons = []
-    if students:
-        for s in students[:10]:
-            phone_str = f" ({s['phone']})" if s.get("phone") else ""
-            buttons.append([
-                InlineKeyboardButton(text=f"👤 {s['full_name']}{phone_str}", callback_data=f"pw_s_{s['id']}")
-            ])
+    for s in students[:10]:
+        phone_str = f" ({s['phone']})" if s.get("phone") else ""
+        buttons.append([
+            InlineKeyboardButton(text=f"👤 {s['full_name']}{phone_str}", callback_data=f"pw_s_{s['id']}")
+        ])
 
     buttons.append([
-        InlineKeyboardButton(text="✍️ O'quvchi ismini yozib kiritish", callback_data="pw_s_manual")
+        InlineKeyboardButton(text="✍️ Yangi o'quvchi ismini yozish", callback_data="pw_s_manual")
     ])
     buttons.append([
         InlineKeyboardButton(text="❌ Bekor qilish", callback_data="pw_cancel")
@@ -609,7 +627,7 @@ async def process_payment_group_choice(call: CallbackQuery):
     await call.message.edit_text(
         f"👤 <b>Yangi to'lov qabul qilish</b> (2/4 bosqich):\n\n"
         f"📚 <b>Tanlangan guruh:</b> {group['name']}\n\n"
-        f"O'quvchini tanlang yoki qo'lda kiriting:",
+        f"O'quvchini tanlang yoki yangi ism kiriting:",
         reply_markup=kb,
         parse_mode="HTML"
     )

@@ -666,16 +666,67 @@ async def send_daily_parents_notifications():
 
 @app.post("/admin/pay")
 async def process_payment(
-    student_id: int = Form(...),
-    group_id: int = Form(...),
+    student_id: str = Form(""),
+    group_id: str = Form(""),
     amount: float = Form(...),
-    payment_type: str = Form(...),
-    month_for: str = Form(...),
+    payment_type: str = Form("naqd"),
+    month_for: str = Form(""),
     note: str = Form(""),
+    custom_student_name: str = Form(""),
+    custom_student_phone: str = Form(""),
+    custom_group_name: str = Form(""),
 ):
-    await add_payment(
-        student_id=student_id,
-        group_id=group_id,
+    if not month_for.strip():
+        month_for = datetime.now().strftime("%Y-%m")
+
+    # Resolve Student
+    valid_student_id = None
+    clean_sid = student_id.strip()
+    if clean_sid.isdigit() and int(clean_sid) > 0:
+        valid_student_id = int(clean_sid)
+        std_record = await get_user_by_id(valid_student_id)
+        if not std_record:
+            valid_student_id = None
+
+    if not valid_student_id:
+        name_to_use = custom_student_name.strip() or (clean_sid if not clean_sid.isdigit() and clean_sid != "custom" else "")
+        if not name_to_use:
+            name_to_use = "Yangi O'quvchi"
+        async with get_db() as db:
+            async with db.execute("SELECT id FROM users WHERE full_name = ? AND role = 'student' LIMIT 1", (name_to_use,)) as cur:
+                existing = await cur.fetchone()
+                if existing:
+                    valid_student_id = existing[0]
+                else:
+                    await add_user(telegram_id=None, full_name=name_to_use, phone=custom_student_phone.strip(), role="student")
+                    async with db.execute("SELECT id FROM users WHERE full_name = ? ORDER BY id DESC LIMIT 1", (name_to_use,)) as cur2:
+                        row2 = await cur2.fetchone()
+                        valid_student_id = row2[0] if row2 else 1
+
+    # Resolve Group
+    valid_group_id = None
+    clean_gid = group_id.strip()
+    if clean_gid.isdigit() and int(clean_gid) > 0:
+        valid_group_id = int(clean_gid)
+        grp_record = await get_group_by_id(valid_group_id)
+        if not grp_record:
+            valid_group_id = None
+
+    if not valid_group_id:
+        gname_to_use = custom_group_name.strip() or (clean_gid if not clean_gid.isdigit() and clean_gid != "custom" else "")
+        if not gname_to_use:
+            gname_to_use = "Asosiy guruh"
+        async with get_db() as db:
+            async with db.execute("SELECT id FROM groups WHERE name = ? LIMIT 1", (gname_to_use,)) as cur:
+                existing_grp = await cur.fetchone()
+                if existing_grp:
+                    valid_group_id = existing_grp[0]
+                else:
+                    valid_group_id = await add_group(name=gname_to_use, subject="Fan", monthly_fee=amount)
+
+    payment_id = await add_payment(
+        student_id=valid_student_id,
+        group_id=valid_group_id,
         amount=amount,
         payment_type=payment_type,
         month_for=month_for,
@@ -684,8 +735,8 @@ async def process_payment(
 
     try:
         await notify_payment_receipt(
-            student_id=student_id,
-            group_id=group_id,
+            student_id=valid_student_id,
+            group_id=valid_group_id,
             amount=amount,
             payment_type=payment_type,
             month_for=month_for,
@@ -694,7 +745,11 @@ async def process_payment(
     except Exception as e:
         print(f"Error notifying payment receipt: {e}")
 
-    return {"status": "success", "message": "To'lov qabul qilindi va o'quvchi hamda barcha biriktirilgan ota-onalarga kvitansiya yuborildi!"}
+    return {
+        "status": "success",
+        "message": f"To'lov muvaffaqiyatli qabul qilindi! ({amount:,.0f} so'm) va chek Telegramga jo'natildi.",
+        "payment_id": payment_id,
+    }
 
 
 @app.post("/admin/link-parent")

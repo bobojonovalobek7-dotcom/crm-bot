@@ -25,6 +25,8 @@ from bot.handlers.admin import (
     is_teacher_creation_cmd,
     start_payment_wizard,
     is_payment_cmd,
+    PAYMENT_WIZARD_SESSIONS,
+    _handle_payment_wizard_text,
 )
 from bot.keyboards.default import get_main_keyboard, get_phone_keyboard
 from bot.keyboards.inline import (
@@ -116,7 +118,7 @@ def build_student_reply(text: str) -> str:
         )
 
     if "yangi to'lov" in normalized or "tolov" in normalized:
-        return "To'lov qabul qilish uchun: /add_payment <student_id> | <group_id> | <amount> | <payment_type> | <month_for> | <note>"
+        return "To'lov qabul qilish uchun quyidagi '💰 Yangi to'lov' tugmasini bosing yoki Web CRM orqali qabul qiling."
 
     if "guruhlarim" in normalized:
         return "Guruhlarim bo'limi: guruhlar ro'yxati va o'quvchilar ma'lumotlari admin paneldan ko'rinadi."
@@ -651,6 +653,10 @@ async def process_text(message: Message):
     if user_id in CREATION_SESSIONS:
         await _handle_creation_step(message)
         return
+
+    if user_id in PAYMENT_WIZARD_SESSIONS:
+        if await _handle_payment_wizard_text(message):
+            return
 
     if is_admin_creation_cmd(text):
         await start_creation_wizard(message, role="admin", label="Admin")

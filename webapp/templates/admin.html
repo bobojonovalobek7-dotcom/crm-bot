@@ -23,6 +23,9 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <button onclick="openTab('payments')" class="btn-primary text-xs py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-200 flex items-center gap-1.5 transition">
+                    💸 <span>To'lov Qabul Qilish</span>
+                </button>
                 <span class="badge badge-primary">🛡 Super Admin</span>
                 <a href="/admin/backup" class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 border-indigo-200 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 shadow-sm" title="Baza faylini to'liq yuklab olish">
                     💾 <span>Baza Zaxirasi</span>
@@ -39,6 +42,27 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 pb-12 space-y-6">
+        <!-- Quick Action Banner -->
+        <div class="modern-card p-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white flex flex-wrap justify-between items-center gap-4 shadow-lg shadow-emerald-900/10">
+            <div>
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <span>⚡️ Tezkor Boshqaruv & To'lov Markazi</span>
+                </h3>
+                <p class="text-xs text-emerald-100 mt-0.5">O'quvchilardan to'lovlarni qabul qiling, kvitansiya jo'nating yoki yangi guruh oching</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+                <button onclick="openTab('payments')" class="px-4 py-2 bg-white text-emerald-700 font-bold rounded-xl text-xs shadow-md hover:bg-emerald-50 transition flex items-center gap-1.5">
+                    💸 To'lov Qabul Qilish
+                </button>
+                <button onclick="openTab('groups')" class="px-3 py-2 bg-white/15 hover:bg-white/25 text-white font-semibold rounded-xl text-xs transition">
+                    📚 Guruh Ochish
+                </button>
+                <button onclick="openTab('users')" class="px-3 py-2 bg-white/15 hover:bg-white/25 text-white font-semibold rounded-xl text-xs transition">
+                    👤 Yangi O'quvchi
+                </button>
+            </div>
+        </div>
+
         <!-- KPI Cards -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="modern-card p-5 bg-gradient-to-br from-indigo-50/50 to-white">
@@ -74,19 +98,35 @@
 
         <!-- Tabs Navigation -->
         <div class="modern-card p-2 flex overflow-x-auto gap-2 tab-nav-container no-scrollbar">
-            <button class="tab-btn active" onclick="openTab('overview')">📊 Umumiy ko'rinish</button>
-            <button class="tab-btn" onclick="openTab('groups')">📚 Guruhlar & Biriktirish</button>
-            <button class="tab-btn" onclick="openTab('family')">👨‍👩‍👧 Oila (Ota-ona & Farzand)</button>
-            <button class="tab-btn" onclick="openTab('payments')">💸 To'lov Qabul Qilish</button>
-            <button class="tab-btn" onclick="openTab('attendance')">✅ Davomat Kiritish</button>
-            <button class="tab-btn" onclick="openTab('feedbacks')">💬 Murojaatlar</button>
-            <button class="tab-btn" onclick="openTab('users')">👥 Foydalanuvchilar</button>
+            <button class="tab-btn active" id="tab-btn-overview" onclick="openTab('overview')">📊 Umumiy ko'rinish</button>
+            <button class="tab-btn font-bold text-emerald-700 bg-emerald-50/80 border border-emerald-300 shadow-sm" id="tab-btn-payments" onclick="openTab('payments')">💸 To'lov Qabul Qilish</button>
+            <button class="tab-btn" id="tab-btn-groups" onclick="openTab('groups')">📚 Guruhlar & Biriktirish</button>
+            <button class="tab-btn" id="tab-btn-family" onclick="openTab('family')">👨‍👩‍👧 Oila (Ota-ona & Farzand)</button>
+            <button class="tab-btn" id="tab-btn-attendance" onclick="openTab('attendance')">✅ Davomat Kiritish</button>
+            <button class="tab-btn" id="tab-btn-feedbacks" onclick="openTab('feedbacks')">💬 Murojaatlar</button>
+            <button class="tab-btn" id="tab-btn-users" onclick="openTab('users')">👥 Foydalanuvchilar</button>
             <button class="tab-btn" id="tab-btn-superadmin" onclick="openTab('superadmin')">👑 Super Admin</button>
-            <button class="tab-btn" onclick="openTab('export')">📤 Eksport & Xabarnoma</button>
+            <button class="tab-btn" id="tab-btn-export" onclick="openTab('export')">📤 Eksport & Xabarnoma</button>
         </div>
 
         <!-- TAB 1: OVERVIEW -->
         <div id="tab-overview" class="tab-content space-y-6">
+            <!-- Quick Payment Action Strip -->
+            <div class="modern-card p-5 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-200 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl shadow-md shadow-emerald-200">
+                        💸
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-base">To'lov qabul qilish kerakmi?</h4>
+                        <p class="text-xs text-slate-500">Mavjud yoki yangi o'quvchidan to'lov qabul qiling va avtomatik Telegram chek chiqaring</p>
+                    </div>
+                </div>
+                <button onclick="openTab('payments')" class="btn-primary bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2.5 px-5 rounded-xl font-bold shadow-md shadow-emerald-200 flex items-center gap-2">
+                    💸 To'lov Qabul Qilishga O'tish &rarr;
+                </button>
+            </div>
+
             <div class="grid md:grid-cols-2 gap-6">
                 <!-- Leaderboard -->
                 <div class="modern-card p-6">
@@ -281,58 +321,185 @@
 
         <!-- TAB 3: PAYMENTS -->
         <div id="tab-payments" class="tab-content hidden space-y-6">
-            <div class="max-w-2xl mx-auto modern-card p-6">
-                <h3 class="font-bold text-slate-800 text-xl text-center mb-2">💸 To'lov Qabul Qilish</h3>
-                <p class="text-sm text-slate-500 text-center mb-6">To'lov saqlangach, o'quvchining Telegram botiga avtomatik kvitansiya jo'natiladi.</p>
+            <!-- Header card -->
+            <div class="modern-card p-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white shadow-lg shadow-emerald-900/10 flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-black flex items-center gap-2.5">
+                        <span>💸 To'lov Qabul Qilish & Boshqaruv</span>
+                    </h2>
+                    <p class="text-emerald-100 text-xs mt-1">To'lov tasdiqlangach, o'quvchi va unga biriktirilgan barcha ota-onalarga Telegram orqali rasmiy chek-kvitansiya boradi.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1.5 bg-white/20 rounded-xl text-xs font-semibold backdrop-blur-sm">⚡️ Avtomat kvitansiya</span>
+                    <span class="px-3 py-1.5 bg-white/20 rounded-xl text-xs font-semibold backdrop-blur-sm">📊 Baza integratsiyasi</span>
+                </div>
+            </div>
 
-                <form id="payForm" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">O'quvchi</label>
-                        <select name="student_id" required class="modern-select">
-                            {% for s in students %}
-                            <option value="{{ s.id }}">{{ s.full_name }} ({{ s.phone }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Guruh</label>
-                        <select name="group_id" required class="modern-select">
-                            {% for g in groups %}
-                            <option value="{{ g.id }}">{{ g.name }} ({{ g.subject }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">To'lov summasi (so'm)</label>
-                            <input type="number" name="amount" required placeholder="350000" class="modern-input">
+            <div class="grid lg:grid-cols-12 gap-6">
+                <!-- Payment Form Card (5 cols on lg) -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="modern-card p-6">
+                        <div class="flex items-center justify-between border-b pb-3 mb-5">
+                            <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                                <span>✍️ To'lov formasi</span>
+                            </h3>
+                            <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">Tezkor</span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">To'lov usuli</label>
-                            <select name="payment_type" class="modern-select">
-                                <option value="naqd">Naqd pul</option>
-                                <option value="karta">Karta (Perevod/Terminal)</option>
-                            </select>
+
+                        <form id="payForm" class="space-y-4">
+                            <!-- Student Mode Toggle -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5">O'quvchini tanlash usuli:</label>
+                                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                                    <button type="button" id="btnStudentSelect" onclick="setStudentMode('select')" class="py-2 text-xs font-bold rounded-lg transition {% if students %}bg-white text-indigo-700 shadow-sm{% else %}text-slate-500 hover:text-slate-700{% endif %}">
+                                        👤 Ro'yxatdan tanlash
+                                    </button>
+                                    <button type="button" id="btnStudentManual" onclick="setStudentMode('manual')" class="py-2 text-xs font-bold rounded-lg transition {% if not students %}bg-white text-emerald-700 shadow-sm{% else %}text-slate-500 hover:text-slate-700{% endif %}">
+                                        ➕ Yangi o'quvchi
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Existing Student Select Container -->
+                            <div id="studentSelectContainer" class="{% if not students %}hidden{% endif %}">
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Mavjud o'quvchi:</label>
+                                <select name="student_id" id="pay_student_id" class="modern-select">
+                                    <option value="">-- O'quvchini tanlang --</option>
+                                    {% for s in students %}
+                                    <option value="{{ s.id }}">{{ s.full_name }} ({{ s.phone or 'Tel kiritilmagan' }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Manual / New Student Inputs Container -->
+                            <div id="studentManualContainer" class="{% if students %}hidden{% endif %} space-y-3 p-3.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-900 mb-1">O'quvchi Ism va Familiyasi <span class="text-rose-500">*</span></label>
+                                    <input type="text" name="custom_student_name" id="pay_custom_name" placeholder="Masalan: Jasur Olimov" class="modern-input bg-white" {% if not students %}required{% endif %}>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-900 mb-1">Telefon raqami (ixtiyoriy)</label>
+                                    <input type="text" name="custom_student_phone" id="pay_custom_phone" placeholder="+998 90 123 45 67" class="modern-input bg-white">
+                                </div>
+                            </div>
+
+                            <!-- Group Selection -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Guruhni tanlang <span class="text-rose-500">*</span></label>
+                                <select name="group_id" id="pay_group_id" required class="modern-select" onchange="onGroupChanged(this)">
+                                    <option value="">-- Guruhni tanlang --</option>
+                                    {% for g in groups %}
+                                    <option value="{{ g.id }}" data-fee="{{ g.monthly_fee }}">{{ g.name }} ({{ g.subject }}) — {{ "%.0f"|format(g.monthly_fee) }} so'm</option>
+                                    {% endfor %}
+                                    <option value="custom">➕ Boshqa guruh nomi kiritish...</option>
+                                </select>
+                            </div>
+
+                            <div id="customGroupContainer" class="hidden p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Yangi Guruh Nomi</label>
+                                <input type="text" name="custom_group_name" id="pay_custom_group" placeholder="Masalan: Individual Matematika" class="modern-input bg-white">
+                            </div>
+
+                            <!-- Amount with Presets -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">To'lov summasi (so'm) <span class="text-rose-500">*</span></label>
+                                <input type="number" name="amount" id="pay_amount" required placeholder="350000" class="modern-input text-lg font-bold text-emerald-700">
+                                <!-- Preset amount chips -->
+                                <div class="flex flex-wrap gap-1.5 mt-2">
+                                    <button type="button" onclick="setPayAmount(200000)" class="px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 text-xs rounded-lg font-medium transition">200 000</button>
+                                    <button type="button" onclick="setPayAmount(300000)" class="px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 text-xs rounded-lg font-medium transition">300 000</button>
+                                    <button type="button" onclick="setPayAmount(350000)" class="px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 text-xs rounded-lg font-medium transition">350 000</button>
+                                    <button type="button" onclick="setPayAmount(400000)" class="px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 text-xs rounded-lg font-medium transition">400 000</button>
+                                    <button type="button" onclick="setPayAmount(500000)" class="px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 text-xs rounded-lg font-medium transition">500 000</button>
+                                </div>
+                            </div>
+
+                            <!-- Payment Type & Month in 2 cols -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">To'lov turi</label>
+                                    <select name="payment_type" id="pay_type" class="modern-select">
+                                        <option value="naqd">💵 Naqd pul</option>
+                                        <option value="karta">💳 Plastik karta (Perevod)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Qaysi oy uchun</label>
+                                    <input type="text" name="month_for" id="pay_month" placeholder="2026-09" required class="modern-input">
+                                </div>
+                            </div>
+
+                            <!-- Note -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Izoh / Kvitansiya raqami</label>
+                                <input type="text" name="note" placeholder="Masalan: 1-oy to'lovi to'liq" class="modern-input">
+                            </div>
+
+                            <!-- Submit button -->
+                            <button type="submit" id="btnSubmitPayment" class="btn-primary w-full py-3.5 text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2">
+                                💸 To'lovni Qabul Qilish & Chek Jo'natish
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Recent Payments History & Receipt view (7 cols on lg) -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="modern-card p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                                    💳 <span>Oxirgi to'lovlar tarixi</span>
+                                </h3>
+                                <p class="text-xs text-slate-400">Markazga kelib tushgan to'lovlar va kvitansiyalar</p>
+                            </div>
+                            <input type="text" id="paymentSearchInput" onkeyup="filterPaymentsTable()" placeholder="🔍 O'quvchi yoki guruh qidirish..." class="modern-input text-xs py-1.5 px-3 max-w-xs">
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="custom-table" id="paymentsFullTable">
+                                <thead>
+                                    <tr>
+                                        <th>O'quvchi</th>
+                                        <th>Guruh</th>
+                                        <th>Summa</th>
+                                        <th>Turi</th>
+                                        <th>Oy</th>
+                                        <th>Sana</th>
+                                        <th>Chek</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in recent_payments %}
+                                    <tr class="payment-row">
+                                        <td class="font-bold text-slate-800">{{ p.student_name }}</td>
+                                        <td class="text-slate-600">{{ p.group_name }}</td>
+                                        <td class="font-bold text-emerald-600">{{ "%.0f"|format(p.amount) }} so'm</td>
+                                        <td>
+                                            {% if p.payment_type == 'naqd' %}
+                                            <span class="badge badge-success text-[10px]">💵 Naqd</span>
+                                            {% else %}
+                                            <span class="badge badge-primary text-[10px]">💳 Karta</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-xs text-slate-500">{{ p.month_for }}</td>
+                                        <td class="text-xs text-slate-400">{{ p.created_at[:16] }}</td>
+                                        <td>
+                                            <button type="button" onclick="showReceiptModal('{{ p.student_name }}', '{{ p.group_name }}', '{{ p.amount }}', '{{ p.payment_type }}', '{{ p.month_for }}', '{{ p.created_at[:16] }}', '{{ p.id }}')" class="px-2.5 py-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg transition">
+                                                🧾 Chek
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-slate-400 py-8">Hozircha qabul qilingan to'lovlar mavjud emas. Yuqoridagi formadan to'lov qabul qiling!</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Qaysi oy uchun</label>
-                            <input type="text" name="month_for" placeholder="2026-sentyabr" required class="modern-input">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Izoh / Kvitansiya raqami</label>
-                            <input type="text" name="note" placeholder="Ixtiyoriy izoh" class="modern-input">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-primary w-full py-3 text-base mt-4">
-                        💸 To'lovni Qabul Qilish va Telegramga Chek Jo'natish
-                    </button>
-                </form>
+                </div>
             </div>
         </div>
 
@@ -785,6 +952,59 @@
         </div>
     </div>
 
+    <!-- Electronic Receipt Modal -->
+    <div id="receiptModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200">
+            <div class="text-center border-b pb-4">
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-xl font-bold mb-2">
+                    🧾
+                </div>
+                <h3 class="font-extrabold text-slate-800 text-lg">ZAHRO O'QUV MARKAZI</h3>
+                <p class="text-xs text-slate-400">Rasmiy to'lov cheki #<span id="rcptId"></span></p>
+            </div>
+
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between py-1 border-b border-dashed">
+                    <span class="text-slate-500">O'quvchi:</span>
+                    <span class="font-bold text-slate-800" id="rcptStudent"></span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-dashed">
+                    <span class="text-slate-500">Guruh:</span>
+                    <span class="font-bold text-slate-800" id="rcptGroup"></span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-dashed">
+                    <span class="text-slate-500">Oy uchun:</span>
+                    <span class="font-bold text-slate-800" id="rcptMonth"></span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-dashed">
+                    <span class="text-slate-500">To'lov turi:</span>
+                    <span class="font-bold text-slate-800" id="rcptType"></span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-dashed">
+                    <span class="text-slate-500">Sana:</span>
+                    <span class="font-bold text-slate-800" id="rcptDate"></span>
+                </div>
+                <div class="flex justify-between py-2 text-sm bg-emerald-50 px-2 rounded-lg mt-2">
+                    <span class="font-bold text-emerald-900">Jami to'landi:</span>
+                    <span class="font-extrabold text-emerald-700" id="rcptAmount"></span>
+                </div>
+            </div>
+
+            <div class="text-center text-[10px] text-slate-400 pt-2 border-t">
+                ✅ Ushbu chek Telegram bot orqali o'quvchi va ota-onaga yuborilgan.
+            </div>
+
+            <div class="flex gap-2">
+                <button type="button" onclick="window.print()" class="btn-secondary w-full text-xs py-2">
+                    🖨 Chop etish
+                </button>
+                <button type="button" onclick="closeReceiptModal()" class="btn-primary w-full text-xs py-2">
+                    Yopish
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toast">
         <span id="toastIcon">✅</span>
@@ -792,9 +1012,15 @@
     </div>
 
     <script>
-        // Set today's date in attendance
+        // Set today's date in attendance and payments
         if (document.getElementById('att_date')) {
             document.getElementById('att_date').value = new Date().toISOString().split('T')[0];
+        }
+        if (document.getElementById('pay_month')) {
+            const d = new Date();
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            document.getElementById('pay_month').value = `${yyyy}-${mm}`;
         }
 
         // Tab Switching
@@ -804,7 +1030,87 @@
             
             const target = document.getElementById('tab-' + tabName);
             if (target) target.classList.remove('hidden');
-            if (event && event.target) event.target.classList.add('active');
+            const navBtn = document.getElementById('tab-btn-' + tabName);
+            if (navBtn) navBtn.classList.add('active');
+            else if (window.event && window.event.target && window.event.target.classList.contains('tab-btn')) {
+                window.event.target.classList.add('active');
+            }
+            window.scrollTo({ top: 120, behavior: 'smooth' });
+        }
+
+        // Student mode switcher (Mavjud / Yangi)
+        function setStudentMode(mode) {
+            const selectContainer = document.getElementById('studentSelectContainer');
+            const manualContainer = document.getElementById('studentManualContainer');
+            const btnSelect = document.getElementById('btnStudentSelect');
+            const btnManual = document.getElementById('btnStudentManual');
+            const customNameInput = document.getElementById('pay_custom_name');
+
+            if (mode === 'manual') {
+                if (selectContainer) selectContainer.classList.add('hidden');
+                if (manualContainer) manualContainer.classList.remove('hidden');
+                if (btnSelect) btnSelect.className = "py-2 text-xs font-bold rounded-lg transition text-slate-500 hover:text-slate-700";
+                if (btnManual) btnManual.className = "py-2 text-xs font-bold rounded-lg transition bg-white text-emerald-700 shadow-sm";
+                if (customNameInput) customNameInput.required = true;
+            } else {
+                if (selectContainer) selectContainer.classList.remove('hidden');
+                if (manualContainer) manualContainer.classList.add('hidden');
+                if (btnSelect) btnSelect.className = "py-2 text-xs font-bold rounded-lg transition bg-white text-indigo-700 shadow-sm";
+                if (btnManual) btnManual.className = "py-2 text-xs font-bold rounded-lg transition text-slate-500 hover:text-slate-700";
+                if (customNameInput) customNameInput.required = false;
+            }
+        }
+
+        // Group change auto-fill fee
+        function onGroupChanged(selectElem) {
+            const val = selectElem.value;
+            const customGrp = document.getElementById('customGroupContainer');
+            if (val === 'custom') {
+                if (customGrp) customGrp.classList.remove('hidden');
+            } else {
+                if (customGrp) customGrp.classList.add('hidden');
+                const opt = selectElem.options[selectElem.selectedIndex];
+                if (opt && opt.dataset.fee) {
+                    const fee = parseFloat(opt.dataset.fee);
+                    if (fee > 0) {
+                        const amtInput = document.getElementById('pay_amount');
+                        if (amtInput && (!amtInput.value || amtInput.value == '0')) {
+                            amtInput.value = fee;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Amount chip helper
+        function setPayAmount(amt) {
+            const amtInput = document.getElementById('pay_amount');
+            if (amtInput) amtInput.value = amt;
+        }
+
+        // Receipt modal
+        function showReceiptModal(student, group, amount, type, month, date, id) {
+            document.getElementById('rcptId').innerText = id || '1';
+            document.getElementById('rcptStudent').innerText = student || "O'quvchi";
+            document.getElementById('rcptGroup').innerText = group || "Guruh";
+            document.getElementById('rcptAmount').innerText = parseFloat(amount || 0).toLocaleString() + " so'm";
+            document.getElementById('rcptType').innerText = (type === 'naqd' ? '💵 Naqd pul' : '💳 Karta (Perevod)');
+            document.getElementById('rcptMonth').innerText = month || '-';
+            document.getElementById('rcptDate').innerText = date || '-';
+            document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').classList.add('hidden');
+        }
+
+        // Filter payments table
+        function filterPaymentsTable() {
+            const query = (document.getElementById('paymentSearchInput').value || '').toLowerCase();
+            document.querySelectorAll('#paymentsFullTable tbody tr.payment-row').forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
         }
 
         // Modal helpers
